@@ -42,6 +42,7 @@
 | DEC-22 | — | Todos los entregables en la carpeta `entregables/`; la verificación en `verificacion/`. | ADOPTADA |
 | DEC-23 | — (surgida en F1) | Añadir `Simulacion` a las entidades de C-03. | ADOPTADA |
 | DEC-24 | — (proyecto final) | Arquitectura de tres bases según la matriz de propiedad v2: MongoDB adoptado, reparto por base dueña, sincronización por outbox, proyección del grafo, stack. KG v1.2. | ADOPTADA (D-15, D-20) / PRELIMINAR (D-16..D-19) / PROPUESTA (D-21) |
+| DEC-25 | P-03 (proyecto final) | `Progreso.nivel_actual` = promedio ponderado por `DESARROLLA.peso` de la puntuación del **último** intento COMPLETADO de cada simulación que desarrolla la habilidad, redondeado a 2 decimales. Lo calcula Neo4j (`database/graph/data/04-derivados.cypher`). | PROPUESTA (P-03) |
 
 ---
 
@@ -221,6 +222,14 @@ Todos los entregables se crean en `entregables/`. Los razonamientos de verificac
   | D-21 | Puntuación del intento = promedio de las valoraciones elegidas (P-03) | PROPUESTA |
 - **Qué no cambia:** el modelo de dominio (12 entidades, 17 relaciones, RI-01..RI-25) y el modelo lógico de grafos de la v1.1 siguen siendo el **modelo conceptual común**; por eso los entregables de la actividad anterior siguen siendo válidos y `scripts/verificar.py` no cambia. La v1.2 cambia en qué base vive cada dato, no qué datos existen.
 - **Aplicada en:** `docs/KG.json` v1.2 (`changelog`); v1.1 conservada en `docs/KG-v1.1.json`.
+
+### DEC-25 — Fórmula de `Progreso.nivel_actual` (proyecto final, 2026-11-19)
+- **Origen:** el cargador del grafo (backend #4) tiene que derivar `Progreso` (matriz §3: "se recalcula desde cero con los intentos COMPLETADO y DESARROLLA"), pero la fórmula estaba abierta (P-03).
+- **ToT:** A. promedio ponderado del **último** intento completado por simulación · B. promedio ponderado de **todos** los intentos completados · C. **mejor** puntuación por simulación. → **A**: refleja el nivel actual (C-05 ya muestra la evolución completa), un intento flojo antiguo no arrastra el nivel (contra B) y un buen intento antiguo no lo infla (contra C).
+- **CoVe:** *¿Usa solo datos del grafo?* Sí: `Intento.puntuacion`, `Intento.fecha_fin`, `DESARROLLA.peso`. *¿Es idempotente?* Sí: se recalcula desde cero y se escribe con `MERGE` sobre la clave (`id_usuario`, `id_habilidad`). *¿Por qué redondear?* Sin redondeo 0.6·92.5 + 0.3·40 entre 0.9 da 75.00000000000001 y la comparación con `nivel_objetivo` (C-02) depende del error de coma flotante.
+- **Detalles:** `fecha_actualizacion` = la `fecha_fin` más reciente que entra en el cálculo (carga reproducible). `id_progreso` lo genera Neo4j (`randomUUID()`) al crear el nodo: `Progreso` solo existe en el grafo y su id no viaja a otra base. Una simulación en BORRADOR no está en el grafo y no cuenta.
+- **Resultado con el dataset (Ana):** Comunicación efectiva 75 (FORTALEZA, objetivo 75), Resolución de conflictos 92.5 (FORTALEZA, objetivo 70), Gestión del tiempo 40 (ÁREA DE MEJORA, respaldo nivel esperado 60).
+- **Estado:** **PROPUESTA (P-03)**, pendiente de aprobación del equipo. No se agrega al KG hasta que se adopte.
 
 ---
 
