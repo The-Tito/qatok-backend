@@ -16,7 +16,6 @@ export default tseslint.config(
       'presentacion/**',
       'entregables/**',
       'verificacion/**',
-      'database/graph/runner/**',
     ],
   },
   js.configs.recommended,
