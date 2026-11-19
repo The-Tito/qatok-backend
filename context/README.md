@@ -34,7 +34,7 @@ Esta carpeta reúne lo que el equipo necesita para **trabajar**: la guía del pr
 | `convenciones.md` | Reglas comunes que todos siguen |
 | `github.md` | Configuración de GitHub: rama por defecto, CI y por qué no hay protección de ramas |
 | `guia/` | Guía del proyecto final del profesor |
-| `antecedentes/Reporte_Auditoria_BDLN-U3.pdf` | Auditoría v1 del estado del repo |
+| `antecedentes/Reporte_Auditoria_BDLN-U3.pdf` | Auditoría v1 del estado del repo (cuando era el monorepo BDLN-U3) |
 | `antecedentes/auditoria-v2.md` | Auditoría v2: confirma y corrige la v1 |
 | `antecedentes/plan-reparto.md` | Por qué se eligió el reparto "dueño de base + dueño de flujo" (alternativas y pre-mortem) |
 

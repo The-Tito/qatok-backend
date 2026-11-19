@@ -1,4 +1,6 @@
-# Plan de trabajo del proyecto final QATO'K (BDLN-U3)
+# Plan de trabajo del proyecto final QATO'K
+
+> **Cambio 2026-11-19:** el monorepo `lsprz2773/BDLN-U3` se dividió en **The-Tito/qatok-backend** (todo menos la interfaz) y **The-Tito/qatok-frontend** (Next.js, con copia sincronizada de `shared/`). Donde este plan dice `frontend/`, léase el repo `qatok-frontend`. La prueba e2e con Playwright se **descartó**: en la fase 3 quedan solo las pruebas de errores de la API.
 
 > Lee la sección 1 para saber tu perfil y luego ve directo a **tu tabla en la sección 4**. Las secciones 2, 3 y 5 explican el orden y de qué dependes.
 
@@ -24,7 +26,7 @@ Ya está decidido:
 |---|---|---|---|---|
 | **A — Coordinación y grafo** | @The-Tito (coordinador) | Neo4j | **F3a Perfil de habilidades y evidencias** | **Fase 0 completa**; sincronización hacia Neo4j y reconciliación; documento de arquitectura (E3) |
 | **B — Relacional y seguridad** | @lsprz2773 | PostgreSQL | **F1 Cuenta y catálogo** + **F3b Compartir evidencias** | Inicio de sesión y roles; pruebas de rendimiento; catálogo de operaciones (E5) |
-| **C — Documental e interfaz** | @AngelChame | MongoDB | **F2 Jugar una simulación** | Estructura de la interfaz y cliente de la API; prueba e2e; propuesta (E1) y README |
+| **C — Documental e interfaz** | @AngelChame | MongoDB | **F2 Jugar una simulación** | Estructura de la interfaz y cliente de la API; propuesta (E1) y README |
 
 **Ajuste frente a `plan-reparto.md`:** A asume el esqueleto que antes tenía B. Para equilibrar, B toma la parte de compartir evidencias (tokens, vencimiento y revocación, que es transaccional y le toca a PostgreSQL) y A se queda con perfil y evidencias.
 
@@ -66,7 +68,7 @@ Mientras A hace esto, **B y C hacen sus tareas "sin bloqueo"** (sección 4).
 | 0.5 | **Estructura del repositorio** | raíz | Carpetas según la sección 10 de la guía; npm workspaces (`backend`, `frontend`, `shared`); `tsconfig`, ESLint y Prettier; `.nvmrc`; `.gitignore` con `.env`, `node_modules` y `.DS_Store`; `neo4j/` se mueve a `database/graph/` | — |
 | 0.6 | **Docker** | `docker-compose.yml`, `.env.example` | PostgreSQL 16, MongoDB 7 y Neo4j 5 Community con volúmenes persistentes, memoria de Neo4j limitada y healthchecks | — |
 | 0.7 | **Esqueleto de la API** | `backend/src/` | `config/` (valida el `.env`), `db/` (conexión con `pg`, `mongodb` y `neo4j-driver`), `middlewares/` (errores y validación con zod), `routes/` (un archivo por flujo), `controllers/`, `services/` y `repositories/{relational,document,graph}`. **`GET /health` recorre las capas y consulta las 3 bases: es la plantilla a copiar.** Incluye una prueba con Vitest | — |
-| 0.8 | ~~Esqueleto de la interfaz~~ **→ pasa al responsable del frontend** | `frontend/` | Decisión del equipo: lo arma quien hará el frontend, porque eligió Next.js. Ya no bloquea la puerta 0. Requisitos y punto de partida en `frontend/README.md` | Responsable del frontend |
+| 0.8 | ~~Esqueleto de la interfaz~~ **→ pasa al responsable del frontend** | `frontend/` | Decisión del equipo: lo arma quien hará el frontend, porque eligió Next.js. Ya no bloquea la puerta 0. Requisitos y punto de partida en el `README.md` de `qatok-frontend` | Responsable del frontend |
 | 0.9 | **Reglas en GitHub** | `.github/`, `context/github.md` | CI de GitHub Actions con las 3 bases (como aviso, no bloquea) y `develop` como rama por defecto. **Sin protección de ramas, sin `CODEOWNERS` y sin plantilla de PR, por decisión del equipo** (`context/github.md`) | B (admin del repo) |
 | 0.10 | **Documentos de contexto al día** | `CLAUDE.md`, `docs/KG.json`, `docs/decisiones-modelado.md` | DEC-24: MongoDB adoptado (D-10 pasa a SUPERSEDED); la arquitectura pasa a ser de "3 bases con responsabilidades"; `CLAUDE.md` describe la nueva etapa (las rondas ToT/CoVe solo para documentos de modelo; el código se valida con pruebas y CI). `scripts/verificar.py` debe seguir en 0 fallos | — |
 | 0.11 | **README de arranque** | `README.md` | Clonar → `npm install` → `npm run setup:env` → `npm run db:up` → `npm run dev:api` | C lo prueba |
@@ -121,13 +123,13 @@ Mientras A hace esto, **B y C hacen sus tareas "sin bloqueo"** (sección 4).
 ### Perfil C — Documental e interfaz
 | Fase | Tarea | Hecho cuando… |
 |---|---|---|
-| 0 · **sin bloqueo** | **Esqueleto de la interfaz (antes paso 0.8)**: app Next.js en `frontend/` según `frontend/README.md`, con una página que muestre `/api/health`. Bocetos de las pantallas de los 3 flujos; borrador de E1 (propuesta con los 8 puntos de la guía §4.1 y la prueba de suficiencia §4.2); revisar 0.1 a 0.4 | Bocetos y borrador compartidos |
+| 0 · **sin bloqueo** | **Esqueleto de la interfaz (antes paso 0.8)**: app Next.js en el repo `qatok-frontend` según su `README.md`, con una página que muestre `/api/health`. Bocetos de las pantallas de los 3 flujos; borrador de E1 (propuesta con los 8 puntos de la guía §4.1 y la prueba de suficiencia §4.2); revisar 0.1 a 0.4 | Bocetos y borrador compartidos |
 | 1 | `database/document/`: colecciones (`contenidos_simulacion`: un documento por simulación con pasos, opciones, consecuencias y retroalimentación anidados, y `contexto` polimórfico por tipo de paso; `evidencias`: instantánea del recorrido), validadores `$jsonSchema`, índices, cargador desde `dataset.json`, consultas, pruebas de documentos válidos e inválidos | `npm run db:document:reset` construye la base desde cero y las pruebas pasan |
 | 1 | Modelo documental para E2 (`docs/modelos/documental.md`): colecciones, anidamiento y validaciones | Revisado por A o B |
 | 2 | `repositories/document` (también lo usan F1 y F3a) | Pruebas en verde |
 | 2 | Backend de F2. **Responder un paso**: lee el contenido de MongoDB; en **una transacción de PostgreSQL** registra la respuesta (RI-10, RI-16, RI-22), cierra el intento si la opción es terminal (RI-23) y escribe los eventos de sincronización; devuelve consecuencias y retroalimentación leídas del contenido (no se escribe en Mongo) | Pruebas de integración en verde |
 | 3 | Pantallas de F2 (iniciar, avanzar paso a paso, ver consecuencia y retroalimentación, terminar), diseñadas para móvil (RF-10) | Se juega una simulación completa desde la interfaz |
-| 3 | Pruebas de **errores**: Neo4j caído al responder (la respuesta se guarda y el evento queda PENDIENTE; la API **no** dice "todo sincronizado"), dato inválido (400 con el formato de error), MongoDB caído (503); una prueba **e2e** con Playwright que recorre registro → jugar → perfil | En verde en CI |
+| 3 | Pruebas de **errores**: Neo4j caído al responder (la respuesta se guarda y el evento queda PENDIENTE; la API **no** dice "todo sincronizado"), dato inválido (400 con el formato de error), MongoDB caído (503). ~~Prueba e2e con Playwright~~ (descartada 2026-11-19) | En verde en CI |
 | 4 | E1 final (`docs/propuesta.md`) y README completo (instalación, configuración, carga, ejecución, pruebas) | Lo valida alguien que no lo escribió |
 
 ---
@@ -166,7 +168,7 @@ Mientras A hace esto, **B y C hacen sus tareas "sin bloqueo"** (sección 4).
 ## 8. Si hay que recortar (en este orden)
 
 1. Administración de simulaciones en F1 (se cargan con la semilla).
-2. Playwright (e2e manual con capturas).
+2. ~~Playwright (e2e manual con capturas).~~ Ya descartado (2026-11-19).
 3. CI (pruebas en local con la salida fechada).
 
 **Nunca se recortan:** las 3 bases, F2, F3a, sincronización, consistencia, errores y el README.
