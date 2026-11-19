@@ -45,4 +45,4 @@ Esta carpeta reúne lo que el equipo necesita para **trabajar**: la guía del pr
 | `docs/KG.json` | Grafo de conocimiento del proyecto: fuente de verdad del dominio (lo valida `scripts/verificar.py`) |
 | `docs/decisiones-modelado.md` | Decisiones DEC-01 en adelante |
 | `entregables/`, `verificacion/`, `presentacion/` | Actividad anterior (modelo lógico de grafos). Es antecedente, no se edita salvo para corregir |
-| `database/graph/` | Scripts Cypher de la actividad anterior (modelo previo a la matriz v2); A los adapta en la fase 1 |
+| `database/graph/` | Proyección del grafo según la matriz v2: esquema, carga desde el dataset, C-01..C-05 y pruebas (`npm run db:graph:probar`) |
