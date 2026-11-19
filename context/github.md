@@ -6,26 +6,22 @@
 
 | Qué | Dónde | Para qué |
 |---|---|---|
-| Rama por defecto `develop` | Settings → General | Los PR se abren contra `develop` y el panel Contributors cuenta el trabajo del equipo |
+| Rama por defecto `develop` (en los dos repos) | Settings → General | Los PR se abren contra `develop` y el panel Contributors cuenta el trabajo del equipo |
 | CI "Verificar" | `.github/workflows/ci.yml` | Corre lint, tipos, pruebas y las 3 bases en cada push y PR. **Es un aviso**: no bloquea el merge |
 | Issues + milestones + etiquetas | Pestaña Issues | Una tarea del plan por issue; milestone = fase; `perfil:A/B/C` = de quién es |
 | Tablero | GitHub Project «QATO'K — Proyecto final» (cuenta @The-Tito): https://github.com/users/The-Tito/projects/1 | Ver en qué va cada uno (Todo / In Progress / Done) |
-| GitGuardian | App instalada en el repo | Avisa si se sube una credencial. Nunca subir `.env` (ya está en `.gitignore`) |
+| GitGuardian | App de GitHub (estaba en BDLN-U3; hay que agregar los repos nuevos en su configuración) | Avisa si se sube una credencial. Nunca subir `.env` (ya está en `.gitignore`) |
 
 El flujo diario está en [`como-trabajar.md`](como-trabajar.md).
 
-## Quitar la protección de ramas (solo el admin, @lsprz2773)
+## Repositorios
 
-En GitHub: **Settings → Branches** (o **Settings → Rules → Rulesets**, según cómo se haya creado) → borrar la regla de `develop` y la de `main`.
+| Repo | Admin | CI |
+|---|---|---|
+| `The-Tito/qatok-backend` | @The-Tito | 3 bases en Docker + lint, tipos, unitarias, integración, dataset y modelo |
+| `The-Tito/qatok-frontend` | @The-Tito | lint, formato, tipos y `check:shared` (la copia de `shared/` debe coincidir con `develop` del backend) |
 
-O por terminal:
-
-```bash
-gh api -X DELETE repos/lsprz2773/BDLN-U3/branches/develop/protection
-gh api -X DELETE repos/lsprz2773/BDLN-U3/branches/main/protection   # si existe
-```
-
-Comprobar: `gh api repos/lsprz2773/BDLN-U3/branches/develop --jq .protected` debe responder `false`.
+Los dos usan `develop` como rama por defecto, sin protección de ramas. @lsprz2773 y @AngelChame están invitados con acceso **Write** (aceptar la invitación en GitHub). El monorepo anterior, `lsprz2773/BDLN-U3`, quedó archivado (solo lectura).
 
 ## Acceso al tablero
 

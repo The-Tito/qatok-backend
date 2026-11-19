@@ -17,8 +17,8 @@ Las tareas de los tres llevan la etiqueta `equipo`.
 Necesitas Node.js 22 o superior, Docker Desktop **encendido**, Python 3 y Git.
 
 ```bash
-git clone git@github.com:lsprz2773/BDLN-U3.git
-cd BDLN-U3
+git clone git@github.com:The-Tito/qatok-backend.git
+cd qatok-backend
 git checkout develop
 npm install
 npm run setup:env      # crea tu .env con contraseñas aleatorias (no se sube a git)
@@ -26,7 +26,9 @@ npm run db:up          # levanta PostgreSQL, MongoDB y Neo4j
 npm run dev:api        # API en http://localhost:4000/api
 ```
 
-Abre http://localhost:4000/api/health: las tres bases deben aparecer con `"ok": true`. Si algo falla, revisa la tabla de **Solución de problemas** del [README](../README.md).
+Abre http://localhost:4000/api/health: las tres bases deben aparecer con `"ok": true`.
+
+Si trabajas en la interfaz, clona también `git@github.com:The-Tito/qatok-frontend.git` **en una carpeta hermana** de `qatok-backend` (así `npm run sync:shared` encuentra `../qatok-backend/shared`). Sus pasos están en su README. Si algo falla, revisa la tabla de **Solución de problemas** del [README](../README.md).
 
 Lee también, una vez (unos 30 minutos): [`plan-trabajo.md`](plan-trabajo.md) (tu perfil y tus tareas), [`convenciones.md`](convenciones.md) y la [matriz de propiedad](../docs/modelos/matriz-propiedad.md).
 
@@ -79,7 +81,7 @@ Formato: `<ámbito>: <qué cambia, en presente>`. Los ámbitos son `relacional`,
 
 Mientras trabajas:
 - Las consultas (SQL, MQL o Cypher) solo van en `backend/src/repositories/` y en `database/`, **siempre con parámetros**.
-- Los tipos se importan de `@qatok/shared`; no los copies.
+- Los tipos se importan de `@qatok/shared`; no los copies. Si cambias `shared/`, avisa al frontend: allá se corre `npm run sync:shared`.
 - Los datos de prueba salen de `database/seed/dataset.json`. Nada se inserta a mano.
 - Si necesitas algo que todavía no existe en la base de otro perfil, programa contra un **repositorio falso** con la misma firma (ver `tests/unit/backend/health.service.test.ts`) y no te detengas.
 

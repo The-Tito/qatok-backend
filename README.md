@@ -2,13 +2,24 @@
 
 **Simulaciones de situaciones laborales para practicar habilidades profesionales antes de vivirlas.**
 
-[![CI](https://github.com/lsprz2773/BDLN-U3/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/lsprz2773/BDLN-U3/actions/workflows/ci.yml)
+[![CI](https://github.com/The-Tito/qatok-backend/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/The-Tito/qatok-backend/actions/workflows/ci.yml)
 
 Proyecto final de **Bases de Datos en la Nube**, Universidad Politécnica de Chiapas. Es una sola aplicación que usa, de forma coordinada y justificada, una base de datos **relacional** (PostgreSQL), una **documental** (MongoDB) y una **de grafos** (Neo4j).
 
 > **Estado:** fase 0 (fundaciones) terminada en su parte técnica. Las bases, la API base y las pruebas de conectividad funcionan; los flujos de la aplicación se construyen en las fases 1 a 3. Ver [Estado del proyecto](#estado-del-proyecto).
 
 ---
+
+## Repositorios
+
+QATO'K se divide en dos repositorios:
+
+| Repo | Contenido |
+|---|---|
+| [**qatok-backend**](https://github.com/The-Tito/qatok-backend) (este) | API REST, esquemas compartidos (`shared/`), scripts de las 3 bases (`database/`), pruebas y documentación evaluable |
+| [**qatok-frontend**](https://github.com/The-Tito/qatok-frontend) | Interfaz Next.js; consume solo la API |
+
+`shared/` es la fuente única del contrato; el frontend guarda una copia sincronizada. El historial anterior está en el repo archivado `lsprz2773/BDLN-U3`.
 
 ## El problema y la solución
 
@@ -50,7 +61,7 @@ Los cambios que el grafo necesita nacen en PostgreSQL junto con un evento (**out
 | Interfaz | Next.js (solo consume la API) |
 | API | Node.js, TypeScript, Express 5, zod |
 | Bases | PostgreSQL 16, MongoDB 7, Neo4j 5 Community (drivers oficiales `pg`, `mongodb`, `neo4j-driver`) |
-| Contrato compartido | `@qatok/shared` (esquemas zod que usan backend y frontend) |
+| Contrato compartido | `@qatok/shared` (esquemas zod que usan backend y frontend; el frontend tiene una copia sincronizada) |
 | Pruebas | Vitest y Supertest |
 | Infraestructura | Docker Compose y GitHub Actions |
 
@@ -64,8 +75,8 @@ Los cambios que el grafo necesita nacen en PostgreSQL junto con un evento (**out
 ## Inicio rápido
 
 ```bash
-git clone git@github.com:lsprz2773/BDLN-U3.git
-cd BDLN-U3
+git clone git@github.com:The-Tito/qatok-backend.git
+cd qatok-backend
 git checkout develop
 
 npm install
@@ -125,14 +136,13 @@ Todos se cambian en tu `.env`.
 
 ```
 ├── backend/            API: controllers → services → repositories/{relational,document,graph}
-├── frontend/           Interfaz Next.js
 ├── shared/             Esquemas zod y catálogos compartidos (fuente única del contrato)
 ├── database/
 │   ├── relational/     PostgreSQL: esquema, carga y consultas
 │   ├── document/       MongoDB: validadores, carga y consultas
 │   ├── graph/          Neo4j: scripts Cypher
 │   └── seed/           Datos de prueba comunes a las 3 bases + su validador
-├── tests/              unit/ · integration/ · e2e/
+├── tests/              unit/ · integration/
 ├── docs/               Entregables evaluables: modelos, contrato de API, pruebas, KG
 ├── context/            Material del equipo: plan de trabajo, convenciones, guía del profesor
 ├── docker-compose.yml

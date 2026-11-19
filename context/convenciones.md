@@ -2,7 +2,7 @@
 
 - **Paso del plan:** 0.2. **Estado:** PROPUESTA, pendiente de aprobación de B y C (puerta 0).
 - **Regla:** si algo no está aquí, se sigue el modelo (`docs/KG.json`) y la matriz (`docs/modelos/matriz-propiedad.md`). Un cambio a este archivo se hace por PR aprobado por los 3.
-- **Fuente única en código:** los catálogos y formatos de este documento se implementan **una sola vez** en `shared/` (esquemas zod). El backend y el frontend los importan; nadie los copia.
+- **Fuente única en código:** los catálogos y formatos de este documento se implementan **una sola vez** en `shared/` (esquemas zod) de `qatok-backend`. El backend los importa; el frontend usa una copia de solo lectura que se actualiza con `npm run sync:shared` (nadie la edita a mano).
 
 ## 1. Identificadores
 
@@ -124,9 +124,9 @@ Una escritura que se completó en la base dueña pero dejó el grafo pendiente *
 6. Logs con nivel y en JSON (pino). Nunca se registran contraseñas, tokens ni correos completos.
 7. Sin `any` en TypeScript (`strict: true`). Lint y formato (ESLint + Prettier) deben pasar antes del PR.
 8. **Frontend con Next.js: solo consume la API.** Next puede ejecutar código en el servidor, y eso facilita caer en el error que la guía prohíbe: que la interfaz toque las bases (§7.6 y §12). Por eso:
-   - `frontend/` **no** importa `pg`, `mongodb` ni `neo4j-driver` (ESLint lo bloquea) y no tiene credenciales de bases en su entorno.
-   - **No** se usan Route Handlers (`app/api/*`) ni Server Actions como backend. Toda lectura y escritura pasa por la API de `backend/` (`NEXT_PUBLIC_API_URL`).
-   - Los tipos y esquemas se importan de `@qatok/shared`, no se redefinen.
+   - `qatok-frontend` **no** importa `pg`, `mongodb` ni `neo4j-driver` (ESLint lo bloquea) y no tiene credenciales de bases en su entorno.
+   - **No** se usan Route Handlers (`app/api/*`) ni Server Actions como backend. Toda lectura y escritura pasa por la API de `qatok-backend` (`NEXT_PUBLIC_API_URL`).
+   - Los tipos y esquemas se importan de `@qatok/shared` (alias a la copia `src/shared/`), no se redefinen.
 
 ## 7. Git (gitflow)
 

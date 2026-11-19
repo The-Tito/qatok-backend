@@ -5,16 +5,15 @@
   "description": "QATO'K: simulaciones de habilidades profesionales sobre PostgreSQL, MongoDB y Neo4j",
   "workspaces": [
     "shared",
-    "backend",
-    "frontend"
+    "backend"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write \"{shared,backend,frontend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
-    "format:check": "prettier --check \"{shared,backend,frontend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
+    "format": "prettier --write \"{shared,backend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
+    "format:check": "prettier --check \"{shared,backend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tests",
     "test": "vitest run",
     "validar:dataset": "python3 database/seed/validar_dataset.py",
