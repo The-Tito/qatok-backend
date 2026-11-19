@@ -16,6 +16,7 @@ Neo4j es una **proyección para recorridos** (C-01..C-05). Cada nodo copiado lle
 | `data/03-carga.cypher` | **Generado** (no se edita): `MERGE` por id de nodos y relaciones. Sin la simulación en BORRADOR |
 | `data/04-derivados.cypher` | `DEMUESTRA` (RI-20) y `Progreso` (fórmula DEC-25, PROPUESTA para P-03), recalculados desde cero |
 | `queries/C-0N-*.cypher` | C-01..C-05 parametrizadas según el contrato F3a (`$idUsuario`, `$limite`, `$idIntento`, `$idHabilidad`). Las ejecuta el repositorio `backend/src/repositories/graph/` |
+| `eventos/<TIPO>.cypher` | Efecto en el grafo de cada evento de sincronización (matriz §5): MERGE por id, idempotente, en una transacción. Una sentencia con `ok` = false revierte y el evento se reintenta. Los aplica `backend/src/repositories/graph/sincronizacion.repository.ts` |
 | `tests/01..03-*.cypher` | Pruebas de esquema (A), datos (B) e integridad (C) |
 | `tests/esperados.mjs` | Resultados esperados de C-01..C-05 con el dataset |
 | `ejecutar.mjs` | Ejecutor con `neo4j-driver` y `.env`: `reset` y `probar` |
