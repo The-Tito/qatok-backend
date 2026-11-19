@@ -15,7 +15,7 @@ Neo4j es una **proyección para recorridos** (C-01..C-05). Cada nodo copiado lle
 | `data/generar-carga.mjs` | Genera `03-carga.cypher` desde `database/seed/dataset.json` |
 | `data/03-carga.cypher` | **Generado** (no se edita): `MERGE` por id de nodos y relaciones. Sin la simulación en BORRADOR |
 | `data/04-derivados.cypher` | `DEMUESTRA` (RI-20) y `Progreso` (fórmula DEC-25, PROPUESTA para P-03), recalculados desde cero |
-| `queries/C-0N-*.cypher` | C-01..C-05 parametrizadas (`$idUsuario`, `$idSimulacion`, `$habilidad`) |
+| `queries/C-0N-*.cypher` | C-01..C-05 parametrizadas según el contrato F3a (`$idUsuario`, `$limite`, `$idIntento`, `$idHabilidad`). Las ejecuta el repositorio `backend/src/repositories/graph/` |
 | `tests/01..03-*.cypher` | Pruebas de esquema (A), datos (B) e integridad (C) |
 | `tests/esperados.mjs` | Resultados esperados de C-01..C-05 con el dataset |
 | `ejecutar.mjs` | Ejecutor con `neo4j-driver` y `.env`: `reset` y `probar` |
@@ -25,7 +25,7 @@ Neo4j es una **proyección para recorridos** (C-01..C-05). Cada nodo copiado lle
 ```bash
 npm run db:up               # Neo4j en Docker (bolt :7688, http :7475)
 npm run db:graph:reset      # vacía Neo4j (datos, restricciones, índices) y aplica schema/01, 02, data/03, 04
-npm run db:graph:probar     # reset + 39 pruebas; escribe docs/pruebas/neo4j-<fecha>.md; código 1 si algo falla
+npm run db:graph:probar     # reset + 44 pruebas; escribe docs/pruebas/neo4j-<fecha>.md; código 1 si algo falla
 npm run db:graph:generar    # regenera data/03-carga.cypher después de cambiar dataset.json
 npm run test:integration    # incluye tests/integration/grafo.test.ts (las mismas pruebas)
 ```
@@ -47,11 +47,11 @@ npm run test:integration    # incluye tests/integration/grafo.test.ts (las misma
 |---|---|
 | Grafo | 34 nodos y 53 relaciones (la simulación 0303 en BORRADOR no se proyecta) |
 | Progreso de Ana | Comunicación efectiva = (0.6·92.5 + 0.3·40) / 0.9 = **75**. Resolución de conflictos = **92.5** (último intento de 0301: 0701). Gestión del tiempo = **40** (0702) |
-| C-01 | Ana: solo «Tres entregas para mañana» (Gestión del tiempo 40 < 60; prioridad 0.7·20 = 14). Bruno, sin progreso: 0301 (0.6·70 + 0.4·60 = 66) y 0302 (0.7·60 + 0.3·50 = 57) |
+| C-01 | Ana: solo «Tres entregas para mañana» (Gestión del tiempo 40 < 60; prioridad 0.7·20 = 14). Bruno, sin progreso: 0301 (0.6·70 + 0.4·60 = 66) y 0302 (0.7·60 + 0.3·50 = 57); con `limite` 1, solo 0301 |
 | C-02 | Ana: Resolución de conflictos y Comunicación efectiva = FORTALEZA (75 ≥ 75). Gestión del tiempo = ÁREA DE MEJORA (sin `nivel_objetivo`, usa el nivel esperado 60) |
-| C-03 | Ana en 0301: 4 decisiones (0703: PARCIAL, ERROR; 0701: ACIERTO, ACIERTO) |
+| C-03 | Ana, intento 0701: 2 decisiones (ACIERTO, ACIERTO). Intento 0704 EN_CURSO: sin decisiones. Bruno no ve el intento de Ana (sin filas) |
 | C-04 | La evidencia 1101 demuestra Comunicación efectiva y Resolución de conflictos, no Gestión del tiempo |
-| C-05 | Ana, Comunicación efectiva: 37.5 → 92.5 → 40. El intento EN_CURSO no cuenta |
+| C-05 | Ana, Comunicación efectiva: 37.5 → 92.5 → 40 y nivel 75. El intento EN_CURSO no cuenta. Bruno: sin nivel ni puntos. Habilidad inexistente: sin filas |
 
 Las pruebas se validaron también **al revés**: con errores introducidos a propósito (una opción de otro paso, una secuencia repetida, un `DEMUESTRA` de más, un nivel alterado, un correo copiado, una ruta entre simulaciones, un intento sin simulación, un tipo de retroalimentación fuera de catálogo), falló la prueba correspondiente en cada caso.
 

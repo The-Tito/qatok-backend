@@ -2,7 +2,7 @@
 
 - **Entregable:** E2, modelo de grafo (guía: «etiquetas, propiedades, tipos de relación, dirección y cardinalidades esperadas»). Issue backend #5, perfil A.
 - **Estado:** PROPUESTA. Necesita la revisión de B o C.
-- **Fuentes:** `docs/modelos/matriz-propiedad.md` §3 (qué se copia al grafo), `docs/KG.json` v1.2 (`physical_projection`) y la implementación probada en `database/graph/` (39/39, `docs/pruebas/neo4j-2026-11-19.md`).
+- **Fuentes:** `docs/modelos/matriz-propiedad.md` §3 (qué se copia al grafo), `docs/KG.json` v1.2 (`physical_projection`) y la implementación probada en `database/graph/` (`npm run db:graph:probar`, informe en `docs/pruebas/`).
 - **Base:** entregables A-03 a A-06 de la actividad anterior (12 etiquetas y 17 relaciones), recortados a la proyección v2 (§7).
 
 ## 1. Papel del grafo
@@ -59,16 +59,16 @@ Origen: **PG** = copia de PostgreSQL · **MG** = copia de MongoDB · **N4** = de
 | Etiqueta | Propiedad | Tipo Neo4j | Obligatoria | Origen | La usa |
 |---|---|---|---|---|---|
 | **Usuario** | `id_usuario` | String (UUID) | Sí, única | PG `usuario` | Ancla de C-01..C-05 |
-| **Simulacion** | `id_simulacion` | String (UUID) | Sí, única | PG `simulacion` | C-03 (parámetro) |
+| **Simulacion** | `id_simulacion` | String (UUID) | Sí, única | PG `simulacion` | Resultado de C-01, C-03, C-04, C-05 |
 | | `titulo` | String | Sí | PG | Resultado de C-01, C-04, C-05 |
 | | `estado` | String: PUBLICADA, INACTIVA | Sí | PG | Filtro de C-01 |
-| **Habilidad** | `id_habilidad` | String (UUID) | Sí, única | PG `habilidad` | Clave de `Progreso` |
-| | `nombre` | String | Sí, única (RI-03) | PG | Parámetro de C-04 y C-05; resultado de C-01, C-02 |
+| **Habilidad** | `id_habilidad` | String (UUID) | Sí, única | PG `habilidad` | Parámetro de C-04 y C-05; resultado de C-02; clave de `Progreso` |
+| | `nombre` | String | Sí, única (RI-03) | PG | Resultado de C-01, C-02 |
 | | `nivel_objetivo` | Integer 0..100 | No (sin valor no se guarda, B8) | PG | Umbral de C-02 |
 | **Paso** | `id_paso` | String (UUID) | Sí, única | MG `contenidos_simulacion.pasos[]` | C-03 |
 | | `orden` | Integer ≥ 1 | Sí | MG | C-03; paso inicial = 1 |
 | **Opcion** | `id_opcion` | String (UUID) | Sí, única | MG `pasos[].opciones[]` | C-03 |
-| **Intento** | `id_intento` | String (UUID) | Sí, única | PG `intento` | C-03 |
+| **Intento** | `id_intento` | String (UUID) | Sí, única | PG `intento` | Parámetro de C-03 |
 | | `estado` | String: EN_CURSO, COMPLETADO, ABANDONADO | Sí | PG | Filtro de C-05 y de `Progreso` |
 | | `fecha_inicio` | DateTime | Sí | PG | Orden de C-03 |
 | | `fecha_fin` | DateTime | Solo si COMPLETADO | PG | C-04, C-05, `Progreso` |
@@ -124,7 +124,7 @@ Neo4j Community solo admite restricciones de unicidad. La existencia, el tipo y 
 | Nombre | Tipo | Sobre | Por qué |
 |---|---|---|---|
 | `usuario_id`, `simulacion_id`, `habilidad_id`, `paso_id`, `opcion_id`, `intento_id`, `respuesta_id`, `progreso_id`, `evidencia_id` | Unicidad (9) | `id_*` de cada etiqueta | RI-01; la carga y la sincronización hacen `MERGE` por id |
-| `habilidad_nombre` | Unicidad | `Habilidad.nombre` | RI-03; C-04 y C-05 filtran por nombre |
+| `habilidad_nombre` | Unicidad | `Habilidad.nombre` | RI-03 (el grafo rechaza nombres duplicados) |
 | `progreso_usuario_habilidad` | Unicidad compuesta | `Progreso (id_usuario, id_habilidad)` | RI-13; recalcular con `MERGE` sin duplicar |
 | `simulacion_estado` | Índice | `Simulacion.estado` | C-01: simulaciones PUBLICADAS |
 | `intento_estado` | Índice | `Intento.estado` | C-05 y `Progreso`: intentos COMPLETADO |
@@ -135,13 +135,13 @@ Las pruebas A1 y A2 comprueban que existen las 11 restricciones y los 4 índices
 
 ## 6. Cómo responde el grafo cada consulta
 
-Consultas en `database/graph/queries/`, con resultados esperados en `database/graph/tests/esperados.mjs`.
+Consultas en `database/graph/queries/`, con resultados esperados en `database/graph/tests/esperados.mjs`. Los parámetros y la forma de las filas siguen el contrato F3a (`docs/api/contrato-v0.md`): las habilidades se filtran por `id_habilidad` y el recorrido es de un intento.
 
 | Consulta | Recorrido | Qué devuelve el grafo | Qué completa el servicio |
 |---|---|---|---|
 | **C-01** Recomendaciones (RF-06) | `Usuario → TIENE_PROGRESO → Progreso → CORRESPONDE_A → Habilidad ← DESARROLLA ← Simulacion {PUBLICADA}` | Simulaciones con habilidades por debajo del `nivel_esperado`, ordenadas por `Σ peso · (esperado − nivel)` | Nada |
 | **C-02** Fortalezas y áreas de mejora (RF-07) | `Progreso` de cada habilidad + `Intento → REGISTRA → Respuesta` de las simulaciones que la desarrollan | Clasificación contra `nivel_objetivo` (o el mayor `nivel_esperado`) y conteo de ACIERTO, PARCIAL y ERROR | Nada |
-| **C-03** Recorrido de decisiones (RF-04, RF-05) | `Intento → REGISTRA → Respuesta → CORRESPONDE_A → Paso` y `→ SELECCIONA → Opcion` | Ids, orden, secuencia y tipo de retroalimentación | Textos del paso, la opción, las consecuencias y la retroalimentación (MongoDB, `contenidos_simulacion`) |
+| **C-03** Recorrido de decisiones de un intento (RF-04, RF-05) | `Usuario → REALIZA → Intento` (solo el dueño) `→ REGISTRA → Respuesta → CORRESPONDE_A → Paso` y `→ SELECCIONA → Opcion` | Ids, orden, secuencia y tipo de retroalimentación | Textos del paso, la opción, las consecuencias y la retroalimentación (MongoDB, `contenidos_simulacion`) |
 | **C-04** Evidencias de una habilidad (RF-08, RF-09) | `Usuario → GENERA → Evidencia → DEMUESTRA → Habilidad` y `Simulacion → TIENE → Intento → PRODUCE → Evidencia` | Evidencias con título, simulación y fecha | Visibilidad y enlaces vigentes (PostgreSQL, `evidencia` y `comparticion`) |
 | **C-05** Evolución de una habilidad (RF-06) | `Usuario → REALIZA → Intento {COMPLETADO} ← TIENE ← Simulacion → DESARROLLA → Habilidad` | Puntuación y peso de cada intento en el tiempo, y el nivel consolidado | Nada |
 

@@ -18,7 +18,7 @@ CREATE CONSTRAINT respuesta_id IF NOT EXISTS FOR (n:Respuesta) REQUIRE n.id_resp
 CREATE CONSTRAINT progreso_id IF NOT EXISTS FOR (n:Progreso) REQUIRE n.id_progreso IS UNIQUE;
 CREATE CONSTRAINT evidencia_id IF NOT EXISTS FOR (n:Evidencia) REQUIRE n.id_evidencia IS UNIQUE;
 
-// RI-03 · Nombre de habilidad único (C-04 y C-05 filtran por nombre)
+// RI-03 · Nombre de habilidad único
 CREATE CONSTRAINT habilidad_nombre IF NOT EXISTS FOR (n:Habilidad) REQUIRE n.nombre IS UNIQUE;
 
 // Progreso es derivado: uno por par (usuario, habilidad). La clave compuesta

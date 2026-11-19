@@ -1,14 +1,16 @@
 // =====================================================================
-// QATO'K · C-03 · Recorrido de decisiones (RF-04, RF-05)
-// Parámetros: $idUsuario, $idSimulacion. Cambio v2: el grafo da la
-// estructura del recorrido (ids, orden y tipo de retroalimentación); el
-// servicio completa los textos del paso, la opción, las consecuencias y la
-// retroalimentación desde MongoDB (contenidos_simulacion).
+// QATO'K · C-03 · Recorrido de decisiones de un intento (RF-04, RF-05)
+// Parámetros: $idUsuario, $idIntento. Solo el dueño: si el intento no es
+// suyo (o no existe) no hay filas y el servicio responde 404. Un intento
+// sin respuestas devuelve una fila con `decisiones` vacía. El grafo da la
+// estructura (ids, orden y tipo de retroalimentación); el servicio completa
+// los textos desde MongoDB (contrato F3a: GET /api/perfil/intentos/:id/recorrido).
 // =====================================================================
-MATCH (u:Usuario {id_usuario: $idUsuario})-[:REALIZA]->(i:Intento)<-[:TIENE]-(s:Simulacion {id_simulacion: $idSimulacion})
-MATCH (i)-[:REGISTRA]->(r:Respuesta)-[:CORRESPONDE_A]->(p:Paso)
-MATCH (r)-[:SELECCIONA]->(o:Opcion)
-RETURN i.id_intento AS id_intento, i.fecha_inicio AS inicio, r.secuencia AS secuencia,
-       p.id_paso AS id_paso, p.orden AS orden, o.id_opcion AS id_opcion,
-       r.tipo_retroalimentacion AS tipo_retroalimentacion
-ORDER BY inicio, secuencia;
+MATCH (u:Usuario {id_usuario: $idUsuario})-[:REALIZA]->(i:Intento {id_intento: $idIntento})<-[:TIENE]-(s:Simulacion)
+OPTIONAL MATCH (i)-[:REGISTRA]->(r:Respuesta)-[:CORRESPONDE_A]->(p:Paso), (r)-[:SELECCIONA]->(o:Opcion)
+WITH s, i, r, p, o ORDER BY r.secuencia
+RETURN {id_intento: i.id_intento, id_simulacion: s.id_simulacion, estado: i.estado,
+        fecha_inicio: i.fecha_inicio, fecha_fin: i.fecha_fin, puntuacion: i.puntuacion} AS intento,
+       collect(CASE WHEN r IS NOT NULL THEN
+         {secuencia: r.secuencia, id_paso: p.id_paso, orden: p.orden, id_opcion: o.id_opcion,
+          tipo_retroalimentacion: r.tipo_retroalimentacion} END) AS decisiones;
