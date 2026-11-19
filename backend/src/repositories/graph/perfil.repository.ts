@@ -9,22 +9,17 @@
  * El grafo solo da ids, orden y lo que filtran las consultas: los textos y los datos de
  * PostgreSQL los completa el servicio de F3a (backend #8).
  */
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import neo4j, { type Driver } from 'neo4j-driver';
+import { leerSentencias } from './cypher.js';
 
-const CONSULTAS = fileURLToPath(new URL('../../../../database/graph/queries/', import.meta.url));
-
-/** Lee un script de una sola sentencia: sin líneas de comentario ni el ';' final. */
+/** Lee una consulta de `database/graph/queries/`: debe ser una sola sentencia. */
 export function cargarConsulta(archivo: string): string {
-  const lineas = readFileSync(`${CONSULTAS}${archivo}`, 'utf8')
-    .split('\n')
-    .filter((l) => l.trim() && !l.trim().startsWith('//'));
-  const cypher = lineas.join('\n').trim();
-  if (!cypher.endsWith(';') || cypher.slice(0, -1).includes(';')) {
-    throw new Error(`${archivo}: se esperaba una sola sentencia terminada en ';'`);
+  const sentencias = leerSentencias(`queries/${archivo}`);
+  const [cypher] = sentencias;
+  if (sentencias.length !== 1 || cypher === undefined) {
+    throw new Error(`${archivo}: se esperaba una sola sentencia`);
   }
-  return cypher.slice(0, -1);
+  return cypher;
 }
 
 // ---- Tipos de las filas (la API les da su forma final en backend #8) ----
