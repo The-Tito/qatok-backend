@@ -185,6 +185,7 @@ La guía del proyecto pide siete tipos de prueba de integración (conectividad, 
 | [Matriz de propiedad de datos](docs/modelos/matriz-propiedad.md) | Qué dato vive en qué base y cómo se sincroniza |
 | [Análisis de alternativas](docs/modelos/analisis-matriz.md) | Por qué esta arquitectura y no otra |
 | [Contrato de la API](docs/api/contrato-v0.md) | Endpoints, entradas, salidas y errores |
+| [Catálogo de operaciones y consultas (E5)](docs/api/catalogo-operaciones.md) | Casos normales, límite y de error con evidencia de las tres bases |
 | [Decisiones de modelado](docs/decisiones-modelado.md) | Registro de decisiones DEC-01 a DEC-24 |
 | [Grafo de conocimiento](docs/KG.json) | Dominio completo del proyecto (v1.2) |
 | [Guía del profesor](context/guia/Guia_Proyecto_Final_Bases_Datos.pdf) | Requisitos del proyecto final |
