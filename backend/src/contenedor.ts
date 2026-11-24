@@ -12,6 +12,7 @@ import {
 import { createEvidenceController } from './controllers/evidence.controller.js';
 import { createProfileController } from './controllers/profile.controller.js';
 import { crearHealthController } from './controllers/health.controller.js';
+import { createShareController } from './controllers/share.controller.js';
 import { createSimulationController } from './controllers/simulation.controller.js';
 import type { Conexiones } from './db/conexiones.js';
 import type { Logger } from './lib/logger.js';
@@ -32,6 +33,7 @@ import {
   createProfileRepository,
 } from './repositories/relational/evidence.repository.js';
 import { crearOutboxRepository } from './repositories/relational/outbox.repository.js';
+import { createShareRepository } from './repositories/relational/share.repository.js';
 import { createSkillRepository } from './repositories/relational/skill.repository.js';
 import { createSimulationRepository } from './repositories/relational/simulation.repository.js';
 import { createAccountService } from './services/account.service.js';
@@ -39,6 +41,7 @@ import { createAttemptService } from './services/attempt.service.js';
 import { createEvidenceService } from './services/evidence.service.js';
 import { createProfileService } from './services/profile.service.js';
 import { crearHealthService } from './services/health.service.js';
+import { createShareService } from './services/share.service.js';
 import { createSkillService } from './services/skill.service.js';
 import { createSimulationService } from './services/simulation.service.js';
 import { crearProcesadorSincronizacion } from './sync/procesador.js';
@@ -128,6 +131,7 @@ export function crearControladores(
       logger,
     }),
   );
+  const shares = createShareController(createShareService(createShareRepository(pool), snapshots));
   const requireSession = createSessionMiddleware(tokens, accounts);
   return {
     health,
@@ -138,6 +142,7 @@ export function crearControladores(
     attempts,
     profile,
     evidence,
+    shares,
     requireSession,
   };
 }
