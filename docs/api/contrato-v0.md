@@ -1,6 +1,6 @@
 # Contrato de la API v0 — QATO'K
 
-- **Entregable E6 · contrato 0.5.0.** Salud, F1, F2 y F3a tienen implementación. Las demás secciones documentan flujos previstos.
+- **Entregable E6 · contrato 0.6.0.** Salud, F1, F2, F3a y F3b tienen implementación.
 - **Se apoya en:** `context/convenciones.md` §5 (prefijo `/api`, `snake_case`, formato de error, códigos HTTP) y `docs/modelos/matriz-propiedad.md` §4 (en qué bases escribe cada operación).
 - **Del contrato al código:** en el paso 0.7 estas formas se escriben como esquemas zod en `shared/`, y de ahí se genera el OpenAPI (`/api/docs`). Si el código y este documento difieren, se corrige el que esté mal mediante un PR.
 - **Para que la interfaz avance sin backend:** C puede simular cualquier endpoint con los ejemplos de este documento.
@@ -18,7 +18,7 @@ Los errores de la API usan `{ error: { code, message, details? } }`. Los consumi
 
 ## 2. Objetos de los flujos previstos
 
-Los objetos siguientes conservan la notación del diseño original. Para los objetos vigentes, consulta F1, F2 y F3a y sus esquemas en `shared/src/`.
+Los objetos siguientes conservan la notación del diseño original. Para los objetos vigentes, consulta los flujos implementados y sus esquemas en `shared/src/`.
 
 ```jsonc
 // Usuario
@@ -163,17 +163,20 @@ Solo se genera una evidencia por intento completado. Si no se envía título, se
 
 Los recursos ausentes o ajenos devuelven `404 NOT_FOUND`. Generar evidencia de un intento sin completar devuelve `409 ATTEMPT_NOT_COMPLETED`. Una evidencia ya existente devuelve `409 EVIDENCE_ALREADY_EXISTS` con `details.evidence_id`. Una revisión o instantánea ausente devuelve `503 PUBLISHED_CONTENT_UNAVAILABLE` o `503 EVIDENCE_CONTENT_UNAVAILABLE`, según corresponda. Las formas completas están en `shared/src/f3a.ts`.
 
-### F3b Compartir evidencias — dueño B (RF-09)
+### F3b Compartir evidencias (RF-09)
 
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| `POST /api/evidencias/:id_evidencia/comparticiones` | Dueño | PG E | `{ dias_vigencia? (1–90, por defecto 30), destinatario? (≤150) }` | `201 { id_comparticion, token, url_publica, fecha_expiracion, estado }` | `400`, `404` |
-| `GET /api/evidencias/:id_evidencia/comparticiones` | Dueño | PG L | — | `200 { datos: [ … ], total }` (cada una con `vigente: true/false`) | `404` |
-| `DELETE /api/comparticiones/:id_comparticion` | Dueño de la evidencia | PG E | — | `204` (pasa a REVOCADA; no se borra) | `404` |
-| `GET /api/publico/evidencias/:token` | **Público** | PG L → Mongo L | — | `200 { titulo, fecha_generacion, titular: { nombre }, contenido }` | `404 ENLACE_INVALIDO` (no existe o fue revocado), `410 ENLACE_VENCIDO`, `503 BASE_NO_DISPONIBLE` |
+| `POST /api/evidence/:evidenceId/shares` | Dueño | PG E | `{ expires_in_days?, recipient? }` | `201 EvidenceShare` | `400 VALIDATION_ERROR`, `404 NOT_FOUND` |
+| `GET /api/evidence/:evidenceId/shares` | Dueño | PG L | — | `200 { items: EvidenceShare[], total }` | `404 NOT_FOUND` |
+| `DELETE /api/shares/:shareId` | Dueño | PG E | — | `204` | `404 NOT_FOUND` |
+| `GET /api/public/evidence/:token` | Público | PG L → Mongo L | — | `200 SharedEvidence` | `404 INVALID_SHARE_LINK`, `410 SHARE_LINK_EXPIRED`, `503 DATABASE_UNAVAILABLE` o `EVIDENCE_CONTENT_UNAVAILABLE` |
 
-- **Token:** 32 bytes aleatorios en base64url, generados en el backend; único (RI-15).
-- **Visibilidad:** en v0 solo el token da acceso público, sin importar `visibilidad`. Para qué sirve `PUBLICA` queda abierto (P-06).
+- `EvidenceShare` incluye `id, token, public_url, recipient, created_at, expires_at, status, is_valid`. Los enlaces nuevos duran de 1 a 90 días de 24 horas, 30 por defecto. `recipient` es una etiqueta opcional de hasta 150 caracteres y solo la ve el dueño del enlace. Los enlaces existentes con `expires_at: null` no caducan.
+- Los tokens nuevos usan 32 bytes aleatorios en base64url. PostgreSQL garantiza su unicidad (RI-15). `public_url` es una ruta relativa al origen de la API. El listado ordena por fecha de creación descendente e ID. Revocar guarda el estado `REVOKED` y puede repetirse con la misma respuesta `204`.
+- El acceso público requiere un enlace activo y vigente, sin importar la visibilidad de la evidencia. Un enlace inexistente o revocado devuelve `404`, incluso si también venció. Un enlace activo que llegó a su vencimiento devuelve `410`. La API comprueba ambas condiciones en PostgreSQL antes de leer MongoDB.
+- `SharedEvidence` incluye `title, generated_at, owner: { name }, content`. El contenido incluye descripción, título de la simulación, puntuación, nombres de habilidades y decisiones de la instantánea. El detalle público omite IDs internos, correo, destinatario y metadatos del enlace.
+- Las respuestas de compartición usan `Cache-Control: no-store`. La ruta pública usa `Referrer-Policy: no-referrer` y oculta el token en los registros de la API. Los esquemas completos están en `shared/src/f3b.ts`.
 
 ## 4. Rutas por archivo (para no chocar en merges)
 
@@ -185,7 +188,7 @@ Los recursos ausentes o ajenos devuelven `404 NOT_FOUND`. Generar evidencia de u
 | `attempt.routes.ts` | `/api/attempts`, `/api/attempts/*` | Antonio |
 | `profile.routes.ts` | `/api/profile`, `/api/profile/*` | A |
 | `evidence.routes.ts` | `/api/evidence`, `/api/evidence/*` (GET, POST, PATCH, DELETE) | A |
-| `comparticiones.routes.ts` | `/api/evidencias/:id/comparticiones`, `/api/comparticiones/*`, `/api/publico/*` | B |
+| `share.routes.ts` | `/api/evidence/:evidenceId/shares`, `/api/shares/:shareId`, `/api/public/evidence/:token` | B |
 
 ## 5. Cobertura
 
@@ -193,6 +196,6 @@ Los recursos ausentes o ajenos devuelven `404 NOT_FOUND`. Generar evidencia de u
 |---|---|
 | Altas, cambios, consultas y bajas por base (nota de la guía) | PG: usuario, habilidad, simulación, intento, comparticion · Mongo: contenido (`PUT`/`GET`/`DELETE`), evidencia · Neo4j: lecturas C-01 a C-05 y escrituras por eventos |
 | Flujo integrado (guía §8.1) | `GET /api/profile` |
-| Escritura en varias bases con fallo parcial (guía §9) | `POST /api/admin/simulations/:simulationId/publish`, `DELETE /api/admin/simulations/:simulationId`, `DELETE /api/me`, evidencias previstas |
+| Escritura en varias bases con fallo parcial (guía §9) | `POST /api/admin/simulations/:simulationId/publish`, `DELETE /api/admin/simulations/:simulationId`, `DELETE /api/me`, generación y borrado de evidencias |
 | Consistencia (guía §9) | Operaciones con `synchronization` y `GET /api/profile` (`pending_sync_count`) |
 | RF-01 a RF-09 | Todos cubiertos. RF-10 (móvil, sesiones cortas) se cubre en la interfaz: retomar un intento con `409 ACTIVE_ATTEMPT_EXISTS` + `GET /api/attempts/:attemptId` |

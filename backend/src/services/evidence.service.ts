@@ -19,7 +19,7 @@ import { nuevoEvento } from '../sync/eventos.js';
 import { toSynchronization } from '../sync/http-status.js';
 import type { ProcesadorSincronizacion } from '../sync/procesador.js';
 import { loadJourney, type PublishedContent } from './journey.js';
-import { publicFeedback, publicStepTypes } from './simulation-content.js';
+import { toEvidenceSnapshot } from './evidence-snapshot.js';
 
 const notFound = () => new ErrorApp('NOT_FOUND', 404, 'Evidence not found');
 const unavailable = () =>
@@ -32,26 +32,6 @@ function evidenceEvent(userId: string, evidence: Evidence) {
     id_intento: evidence.attempt_id,
     titulo: evidence.title,
   });
-}
-
-function publicSnapshot(snapshot: InstantaneaEvidencia): EvidenceDetail['content'] {
-  return {
-    description: snapshot.descripcion,
-    simulation: { id: snapshot.simulacion.id_simulacion, title: snapshot.simulacion.titulo },
-    score: snapshot.puntuacion,
-    created_at: snapshot.creado_en.toISOString(),
-    skills: snapshot.habilidades.map(({ id_habilidad, nombre }) => ({
-      id: id_habilidad,
-      name: nombre,
-    })),
-    decisions: snapshot.decisiones.map((decision) => ({
-      sequence: decision.secuencia,
-      step: { title: decision.paso.titulo, type: publicStepTypes[decision.paso.tipo] },
-      option: decision.opcion,
-      consequences: decision.consecuencias,
-      feedback_type: publicFeedback[decision.retroalimentacion_tipo],
-    })),
-  };
 }
 
 export function createEvidenceService({
@@ -176,7 +156,7 @@ export function createEvidenceService({
       if (!evidence) throw notFound();
       const snapshot = await snapshots.obtener(id);
       if (!snapshot) throw unavailable();
-      return { evidence, content: publicSnapshot(snapshot) };
+      return { evidence, content: toEvidenceSnapshot(snapshot) };
     },
 
     async update(userId: string, id: string, input: UpdateEvidenceInput) {

@@ -10,7 +10,24 @@ import { manejarErrores, rutaNoEncontrada } from './middlewares/errores.middlewa
 export function crearApp(opciones: { rutas: Router; logger: Logger; corsOrigen: string }) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(pinoHttp({ logger: opciones.logger }));
+  app.use(
+    pinoHttp({
+      logger: opciones.logger,
+      serializers: {
+        req(value) {
+          if (/^(?:https?:\/\/[^/]+)?\/api\/public\/evidence(?:[/?]|$)/i.test(value.url ?? '')) {
+            return {
+              ...value,
+              url: '/api/public/evidence/[OCULTO]',
+              params: undefined,
+              query: undefined,
+            };
+          }
+          return value;
+        },
+      },
+    }),
+  );
   app.use(cors({ origin: opciones.corsOrigen }));
   app.use(express.json({ limit: '1mb' }));
 

@@ -12,6 +12,7 @@ export function crearLogger(e: Pick<Entorno, 'NODE_ENV'>): Logger {
       paths: [
         'req.headers.authorization',
         'req.headers.cookie',
+        'req.headers.referer',
         '*.contrasena',
         '*.contrasena_hash',
         '*.token',

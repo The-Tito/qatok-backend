@@ -9,6 +9,7 @@ import { createEvidenceRoutes } from './evidence.routes.js';
 import { createProfileRoutes } from './profile.routes.js';
 import { createF1Routes } from './f1.routes.js';
 import { healthRoutes } from './health.routes.js';
+import { createShareRoutes } from './share.routes.js';
 import { createSimulationAdminRoutes } from './simulation-admin.routes.js';
 
 export function crearRutas(c: Controladores): Router {
@@ -18,6 +19,7 @@ export function crearRutas(c: Controladores): Router {
   api.use('/admin/simulations', createSimulationAdminRoutes(c));
   api.use('/attempts', createAttemptRoutes(c));
   api.use('/profile', createProfileRoutes(c));
+  api.use(createShareRoutes(c));
   api.use('/evidence', createEvidenceRoutes(c));
   return api;
 }
