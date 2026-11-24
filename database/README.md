@@ -4,9 +4,17 @@ Esquemas, cargas y consultas de las 3 bases, organizados como sugiere la guía (
 
 | Carpeta | Base | Dueño | Subcarpetas |
 |---|---|---|---|
-| `relational/` | PostgreSQL | B | `schema/` (DDL: tablas, PK, FK, CHECK, índices) · `data/` (cargador desde `seed/dataset.json`) · `queries/` (consultas representativas) |
+| `relational/` | PostgreSQL | B | `schema/` (DDL: tablas, PK, FK, CHECK, índices) · `ejecutar.mjs` (carga desde `seed/dataset.json`) · `queries/` (consultas representativas) · `tests/` (integridad y reversión) |
 | `document/` | MongoDB | C | `validators/` (`$jsonSchema` por colección) · `data/` (cargador) · `queries/` |
 | `graph/` | Neo4j | A | `schema/` (restricciones e índices) · `data/` (carga generada desde `seed/` + derivados) · `queries/` (C-01..C-05) · `tests/` (`npm run db:graph:probar`) |
 | `seed/` | Las 3 | A (los cambios los aprueban los 3) | `dataset.json` + `validar_dataset.py` |
 
 Qué datos van en cada base: `docs/modelos/matriz-propiedad.md`. Nombres y tipos: `context/convenciones.md`.
+
+## PostgreSQL en desarrollo
+
+Después de `npm run db:up`, ejecuta `npm run db:relational:reset` para reconstruir las tablas de QATO’K en el esquema `public` y cargarlas desde el dataset. **El comando reemplaza los datos relacionales locales de esas tablas.** Todo el cambio se confirma en una transacción y el comando solo admite PostgreSQL local fuera de producción.
+
+Los usuarios de muestra se cargan sin contraseña utilizable. Para habilitar su acceso cuando exista el flujo de autenticación, configura en local `QATOK_SEED_PASSWORD_HASH` con un hash bcrypt de costo 10. La carga queda reservada a desarrollo y pruebas. Las simulaciones publicadas ya tienen IDs de revisión fijos. El cargador documental de #19 deberá usar esos mismos IDs para sus copias publicadas.
+
+Ejecuta `npm run test:integration -- tests/integration/relacional.test.ts` para comprobar la carga, las restricciones, el orden de eventos y las consultas. La prueba construye un esquema temporal y lo revierte al terminar.
