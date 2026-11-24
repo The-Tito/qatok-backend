@@ -31,7 +31,7 @@ El contenido describe cada simulación; la ejecución registra lo que hizo el us
 
 ## 3. Los entregables
 
-La actividad pide seis tablas o diagramas y unas conclusiones; los siete están terminados y verificados contra el grafo de conocimiento del proyecto (KG v1.1). Los archivos están en `entregables/` (Markdown) y `entregables/docx/` (Word).
+La actividad pide seis tablas o diagramas y unas conclusiones. Los siete entregables se verificaron contra el grafo de conocimiento del proyecto (KG v1.1). Las fuentes Markdown están en [entregables/](../entregables/). Las exportaciones Word se guardan en local.
 
 | # | Entregable | Qué contiene | Cifra clave | Qué decir al presentarlo |
 | --- | --- | --- | --- | --- |

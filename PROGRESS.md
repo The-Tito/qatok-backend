@@ -87,6 +87,8 @@ Carpeta `neo4j/` (ver su README). Neo4j 5.26 LTS Community: 15 restricciones, 9 
 
 ## Conversión final (F9)
 
+El listado registra las rutas de salida de la actividad anterior. Las copias Word se guardan en local y las fuentes Markdown siguen en [entregables/](entregables/).
+
 Generada con `node scripts/md2docx.js` → `entregables/docx/`. Estilo sobrio: texto negro, encabezados de tabla en gris y sin azul (también se neutralizaron los estilos azules que la plantilla trae pero no usa). Los 7 archivos pasaron la validación de esquema y se revisaron visualmente renderizados a PDF.
 
 | # | Entregable | Formato final | Estado |
