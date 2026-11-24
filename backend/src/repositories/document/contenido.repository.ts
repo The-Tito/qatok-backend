@@ -1,6 +1,12 @@
 import { isDeepStrictEqual } from 'node:util';
 import { PasoVista, Uuid } from '@qatok/shared';
-import { MongoServerError, type Db } from 'mongodb';
+import {
+  MongoNetworkError,
+  MongoServerError,
+  MongoServerSelectionError,
+  MongoWriteConcernError,
+  type Db,
+} from 'mongodb';
 
 interface Opcion {
   id_opcion: string;
@@ -157,6 +163,14 @@ export function crearContenidoRepository(db: Db) {
       return borradores.deleteOne({ _id: Uuid.parse(idSimulacion) });
     },
 
+    // Solo se llama con la simulación bloqueada como borrador, o después de borrarla.
+    removeUnpublishedRevisions(idSimulation: string, keepVersion?: number) {
+      const filter = { id_simulacion: Uuid.parse(idSimulation) };
+      return revisiones.deleteMany(
+        keepVersion === undefined ? filter : { ...filter, version: { $ne: keepVersion } },
+      );
+    },
+
     // La API decidirá si publica la revisión al confirmar PostgreSQL.
     async guardarRevision(idRevision: string, borrador: Borrador, creadoEn = new Date()) {
       const _id = Uuid.parse(idRevision);
@@ -168,8 +182,14 @@ export function crearContenidoRepository(db: Db) {
         await revisiones.insertOne(revision);
         return revision;
       } catch (error) {
-        if (!esDuplicado(error)) throw error;
-        const anterior = await revisiones.findOne({ id_simulacion, version });
+        if (
+          !esDuplicado(error) &&
+          !(error instanceof MongoNetworkError) &&
+          !(error instanceof MongoServerSelectionError) &&
+          !(error instanceof MongoWriteConcernError)
+        )
+          throw error;
+        const anterior = await revisiones.findOne({ id_simulacion, version }).catch(() => null);
         if (anterior && isDeepStrictEqual(anterior.pasos, pasos)) return anterior;
         throw error;
       }

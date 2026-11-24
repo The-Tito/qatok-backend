@@ -182,12 +182,13 @@ Comparación completa en `analisis-matriz.md` §3.
 3. **Todo cambio que deba llegar al grafo nace en PostgreSQL**, en la misma transacción que su evento (outbox).
 4. **Neo4j es una proyección:** ids, relaciones y solo las propiedades que usan C-01..C-05. Es dueño de lo derivado (`Progreso`, `DEMUESTRA`).
 5. **El contenido publicado es inmutable** (D-19), así que la estructura copiada al grafo no se desfasa.
-6. **Una base por operación siempre que se pueda.** Solo dos operaciones escriben en dos bases y su peor caso es un huérfano inofensivo.
+6. **Una base por operación siempre que se pueda.** Las operaciones que escriben en PostgreSQL y MongoDB definen el orden y la forma de recuperar fallos parciales.
 
 ### Operaciones que escriben en más de una base
 
 | Operación | Orden | Si falla la segunda escritura |
 |---|---|---|
+| Publicar escenario (F1) | 1) MongoDB guarda la revisión inmutable → 2) PostgreSQL registra referencia, estado y evento | Queda una candidata que un reintento de la misma versión puede reutilizar |
 | Generar evidencia (F3a) | 1) MongoDB `evidencias` → 2) PostgreSQL `evidencia` + evento | Se borra el documento (compensación); si también falla, la reconciliación lo limpia |
 | Eliminar un BORRADOR o una evidencia | 1) PostgreSQL → 2) MongoDB | Queda un documento huérfano; la reconciliación lo limpia |
 

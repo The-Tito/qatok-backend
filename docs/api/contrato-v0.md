@@ -1,6 +1,6 @@
 # Contrato de la API v0 — QATO'K
 
-- **Entregable E6 · contrato 0.2.0.** Salud y las primeras rutas de F1 tienen implementación. Las demás secciones documentan flujos previstos y sus rutas se revisarán al implementarlas.
+- **Entregable E6 · contrato 0.3.0.** Salud y F1, incluida la administración de escenarios, tienen implementación. Las demás secciones documentan flujos previstos.
 - **Se apoya en:** `context/convenciones.md` §5 (prefijo `/api`, `snake_case`, formato de error, códigos HTTP) y `docs/modelos/matriz-propiedad.md` §4 (en qué bases escribe cada operación).
 - **Del contrato al código:** en el paso 0.7 estas formas se escriben como esquemas zod en `shared/`, y de ahí se genera el OpenAPI (`/api/docs`). Si el código y este documento difieren, se corrige el que esté mal mediante un PR.
 - **Para que la interfaz avance sin backend:** C puede simular cualquier endpoint con los ejemplos de este documento.
@@ -106,18 +106,24 @@ La respuesta incluye `id` y `target_level`, que puede ser un entero de 0 a 100 o
 
 El resumen incluye `id`, `title`, `description`, `difficulty` (`BASIC`, `INTERMEDIATE`, `ADVANCED`), `estimated_duration` (entero o nulo), `status: "PUBLISHED"` y `skills: [{ id, name, weight, expected_level }]`. La búsqueda compara texto literal en el título o la descripción sin distinguir mayúsculas. Los filtros se combinan. Los resultados se ordenan por título e ID, con `limit=20` (máximo 100), `offset=0` y el total antes de paginar.
 
-### F1 Administración de simulaciones — dueño B
+### F1 Administración de simulaciones
 
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| `GET /api/admin/simulaciones` | Admin | PG L | Query: `estado?`, paginación | `200 { datos: SimulacionResumen[], total }` | — |
-| `POST /api/admin/simulaciones` | Admin | PG E | `{ titulo, descripcion, dificultad, duracion_estimada?, habilidades: [{ id_habilidad, peso, nivel_esperado }] (≥1, sin repetir: RI-08) }` | `201 SimulacionResumen` (BORRADOR) | `400`, `404 HABILIDAD_NO_ENCONTRADA` |
-| `PUT /api/admin/simulaciones/:id` | Admin | PG E | igual que `POST` | `200 SimulacionResumen` | `404`, `409 SIMULACION_NO_EDITABLE` |
-| `GET /api/admin/simulaciones/:id/contenido` | Admin | Mongo L | — | `200 ContenidoSimulacion` | `404 SIN_CONTENIDO` |
-| `PUT /api/admin/simulaciones/:id/contenido` | Admin | PG L → Mongo E | `ContenidoSimulacion` (ids generados por la interfaz o por el backend si faltan) | `200 ContenidoSimulacion` | `400 VALIDACION` (forma del `contexto` por tipo), `404`, `409 SIMULACION_NO_EDITABLE` |
-| `POST /api/admin/simulaciones/:id/publicar` | Admin | Mongo L → PG E + *ev* | — | `200 { simulacion, sincronizacion }` | `404`, `409 SIN_CONTENIDO`, `409 CONTENIDO_INCOMPLETO` (RI-17, RI-18), `409 RAMIFICACION_INVALIDA` (RI-11), `409 SIMULACION_NO_EDITABLE` |
-| `POST /api/admin/simulaciones/:id/desactivar` | Admin | PG E + *ev* | — | `200 { simulacion, sincronizacion }` | `404`, `409 SIMULACION_NO_PUBLICADA` |
-| `DELETE /api/admin/simulaciones/:id` | Admin | PG E → Mongo E | — | `204` | `404`, `409 SIMULACION_PUBLICADA` (solo se elimina un BORRADOR) |
+| `GET /api/admin/simulations` | ADMIN | PG L | `status?`, `limit?`, `offset?` | `200 { items: AdminSimulation[], total }` | `400 VALIDATION_ERROR` |
+| `POST /api/admin/simulations` | ADMIN | PG E | `SimulationInput` | `201 AdminSimulation` con estado DRAFT | `400 VALIDATION_ERROR`, `404 SKILL_NOT_FOUND` |
+| `PUT /api/admin/simulations/:simulationId` | ADMIN | PG E | `SimulationInput` | `200 AdminSimulation` | `400 VALIDATION_ERROR`, `404 NOT_FOUND` o `SKILL_NOT_FOUND`, `409 SIMULATION_NOT_EDITABLE` |
+| `GET /api/admin/simulations/:simulationId/content` | ADMIN | PG + Mongo L | — | `200 { version, steps }` | `404 NOT_FOUND` o `MISSING_CONTENT` |
+| `PUT /api/admin/simulations/:simulationId/content` | ADMIN | PG L → Mongo E | `{ version, steps }`; `version: null` para crear | `200 { version, steps }` | `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 SIMULATION_NOT_EDITABLE` o `STALE_CONTENT_VERSION` |
+| `POST /api/admin/simulations/:simulationId/publish` | ADMIN | Mongo L/E → PG E + *ev* | `{ version }` | `200 { simulation, synchronization }` | `404 NOT_FOUND`, `409 MISSING_CONTENT`, `INCOMPLETE_CONTENT`, `INVALID_BRANCHES`, `STALE_CONTENT_VERSION`, `SIMULATION_NOT_EDITABLE` o `CONTENT_ID_CONFLICT` |
+| `POST /api/admin/simulations/:simulationId/deactivate` | ADMIN | PG E + *ev* | — | `200 { simulation, synchronization }` | `404 NOT_FOUND`, `409 SIMULATION_NOT_PUBLISHED` |
+| `DELETE /api/admin/simulations/:simulationId` | ADMIN | PG E → Mongo E | — | `204` | `404 NOT_FOUND`, `409 SIMULATION_NOT_EDITABLE` |
+
+Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FORBIDDEN` sin rol ADMIN. Si una base es necesaria para completar la operación y no responde, se devuelve `503 DATABASE_UNAVAILABLE`.
+
+- **Metadatos.** `SimulationInput` incluye `title`, `description`, `difficulty`, `estimated_duration?` y `skills: [{ skill_id, weight, expected_level }]`. Las habilidades son únicas, con un mínimo de una y máximo de 20. Los pesos van de 0.01 a 1 con hasta dos decimales y el nivel esperado es entero de 0 a 100. `AdminSimulation` amplía el resumen del catálogo con estados DRAFT, PUBLISHED e INACTIVE.
+- **Contenido.** Los pasos llevan `id`, `order`, `title`, `description`, `type`, `context` y `options`. Los tipos son EMAIL, MEETING, CONVERSATION, TASK e INCIDENT. El contexto tiene campos propios de cada tipo. Cada opción incluye `id`, `description`, `score`, `next_step_id`, `consequences` y `feedback`. El cliente asigna UUID v4 a pasos y opciones. Un `next_step_id: null` termina la ruta. El cuerpo HTTP tiene el límite global de 1 MiB. Los [esquemas compartidos](../../shared/src/simulation-admin.ts) detallan rangos y campos.
+- **Edición y publicación.** El primer guardado devuelve versión 1. Para reemplazar, enviar la versión que se leyó. Publicar usa una copia inmutable de esa versión. La API fija la referencia y el estado en PostgreSQL junto con el evento, y el catálogo puede mostrar la simulación aun si el grafo queda PENDING. Al desactivar, el catálogo la oculta y el administrador aún puede consultar la revisión publicada. Una baja de borrador puede dejar limpieza documental pendiente si MongoDB falla después del commit.
 
 ### F2 Jugar una simulación — dueño C (RF-03, RF-04, RF-05)
 
@@ -198,7 +204,7 @@ Respuesta de `GET /api/perfil`:
 |---|---|---|
 | `health.routes.ts` | `/api/health` | A |
 | `f1.routes.ts` | `/api/auth/*`, `/api/me`, `/api/skills`, `/api/admin/skills/*`, `/api/simulations/*` | Antonio |
-| Próximo paso | Administración y publicación de simulaciones | Antonio |
+| `simulation-admin.routes.ts` | `/api/admin/simulations/*` | Antonio |
 | `intentos.routes.ts` | `/api/intentos/*` | C |
 | `perfil.routes.ts` | `/api/perfil/*` | A |
 | `evidencias.routes.ts` | `/api/evidencias` (GET lista y detalle, POST, PATCH, DELETE) | A |
@@ -210,6 +216,6 @@ Respuesta de `GET /api/perfil`:
 |---|---|
 | Altas, cambios, consultas y bajas por base (nota de la guía) | PG: usuario, habilidad, simulación, intento, comparticion · Mongo: contenido (`PUT`/`GET`/`DELETE`), evidencia · Neo4j: lecturas C-01 a C-05 y escrituras por eventos |
 | Flujo integrado (guía §8.1) | `GET /api/perfil` |
-| Escritura en varias bases con fallo parcial (guía §9) | `POST /api/evidencias`, `DELETE /api/admin/simulaciones/:id`, `DELETE /api/me` |
+| Escritura en varias bases con fallo parcial (guía §9) | `POST /api/admin/simulations/:simulationId/publish`, `DELETE /api/admin/simulations/:simulationId`, `DELETE /api/me`, evidencias previstas |
 | Consistencia (guía §9) | Todo lo que devuelve `sincronizacion` + `GET /api/perfil` (`sincronizacion_pendiente`) |
 | RF-01 a RF-09 | Todos cubiertos. RF-10 (móvil, sesiones cortas) se cubre en la interfaz: retomar un intento con `409 INTENTO_EN_CURSO_EXISTENTE` + `GET /api/intentos/:id` |

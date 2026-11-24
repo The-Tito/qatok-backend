@@ -30,7 +30,12 @@ export function baseNoDisponible(error: unknown): NombreBase | null {
   const { name, message } = error;
   const codigo = (error as { code?: unknown }).code;
 
-  if (name.startsWith('MongoServerSelection') || name === 'MongoNetworkError') return 'documental';
+  if (
+    name.startsWith('MongoServerSelection') ||
+    name.startsWith('MongoNetwork') ||
+    name === 'MongoWriteConcernError'
+  )
+    return 'documental';
   if (codigo === 'ServiceUnavailable' || codigo === 'SessionExpired') return 'grafo';
   if (
     codigo === 'ECONNREFUSED' ||

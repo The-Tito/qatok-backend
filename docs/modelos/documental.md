@@ -92,9 +92,9 @@ Los límites de pasos, opciones, consecuencias y texto acotan el documento. La A
 
 ### 7.4 Concurrencia entre editar y publicar
 
-El reemplazo del borrador usa la versión recibida. Cuando dos ediciones llegan con la misma versión, solo una puede guardar. La API de publicación bloqueará en PostgreSQL la fila de la simulación, validará la versión solicitada y guardará una revisión. Con la fila aún bloqueada, fijará la referencia, el estado PUBLICADA y el evento en la misma transacción. El juego lee solo la revisión apuntada por PostgreSQL. Por eso un cambio tardío en el borrador no cambia el contenido publicado.
+El reemplazo del borrador usa la versión recibida. Cuando dos ediciones llegan con la misma versión, solo una puede guardar. La API bloquea en PostgreSQL la fila de la simulación para editar y publicar. Al publicar valida la versión solicitada y guarda una copia inmutable. Con la fila aún bloqueada, fija la referencia, el estado PUBLICADA y el evento en la misma transacción. La lectura del contenido publicado usa la revisión fijada en PostgreSQL. Por eso un cambio tardío en el borrador no cambia el contenido publicado.
 
-Si el resultado de insertar en MongoDB es incierto, el servicio debe recuperar la candidata y comprobar su identidad y contenido antes de fijar la referencia. La limpieza de candidatas debe coordinarse con el mismo bloqueo para que no borre una revisión en proceso de publicación. El contrato público de versión, los bloqueos de publicación y la limpieza se implementan en los pasos de administración y reconciliación. [Diseño relacional de publicación](relacional.md#diseño-de-publicación-y-sincronización)
+Si el resultado de insertar en MongoDB es incierto, el repositorio intenta recuperar la candidata por simulación y versión y comprueba que coincida con el contenido solicitado. Si no puede confirmarla, PostgreSQL revierte. Una simulación aún en BORRADOR puede retirar candidatas de otras versiones bajo el mismo bloqueo antes de volver a publicar. La limpieza general de huérfanos sigue en el paso de reconciliación. [Contrato de administración](../api/contrato-v0.md#f1-administración-de-simulaciones) · [Diseño relacional de publicación](relacional.md#diseño-de-publicación-y-sincronización)
 
 ## 8. Pruebas y ejecución
 

@@ -9,10 +9,12 @@ import {
   createSkillController,
 } from './controllers/f1.controller.js';
 import { crearHealthController } from './controllers/health.controller.js';
+import { createSimulationController } from './controllers/simulation.controller.js';
 import type { Conexiones } from './db/conexiones.js';
 import type { Logger } from './lib/logger.js';
 import { createSessionTokens } from './lib/session.js';
 import { createSessionMiddleware } from './middlewares/session.middleware.js';
+import { crearContenidoRepository } from './repositories/document/contenido.repository.js';
 import { crearEvidenciaRepository } from './repositories/document/evidencia.repository.js';
 import { crearHealthRepositoryDocumental } from './repositories/document/health.repository.js';
 import { crearHealthRepositoryGrafo } from './repositories/graph/health.repository.js';
@@ -22,9 +24,11 @@ import { createAccountRepository } from './repositories/relational/account.repos
 import { createCatalogRepository } from './repositories/relational/catalog.repository.js';
 import { crearOutboxRepository } from './repositories/relational/outbox.repository.js';
 import { createSkillRepository } from './repositories/relational/skill.repository.js';
+import { createSimulationRepository } from './repositories/relational/simulation.repository.js';
 import { createAccountService } from './services/account.service.js';
 import { crearHealthService } from './services/health.service.js';
 import { createSkillService } from './services/skill.service.js';
+import { createSimulationService } from './services/simulation.service.js';
 import { crearProcesadorSincronizacion } from './sync/procesador.js';
 import paquete from '../package.json' with { type: 'json' };
 
@@ -64,8 +68,17 @@ export function crearControladores(
     createSkillService(pool, createSkillRepository(pool), synchronization),
   );
   const catalog = createCatalogController(createCatalogRepository(pool));
+  const simulations = createSimulationController(
+    createSimulationService({
+      pool,
+      simulations: createSimulationRepository(pool),
+      content: crearContenidoRepository(conexiones.mongo.db),
+      synchronization,
+      logger,
+    }),
+  );
   const requireSession = createSessionMiddleware(tokens, accounts);
-  return { health, account, skills, catalog, requireSession };
+  return { health, account, skills, catalog, simulations, requireSession };
 }
 
 export type Controladores = ReturnType<typeof crearControladores>;
