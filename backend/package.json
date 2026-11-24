@@ -30,6 +30,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "db:sync:reactivar": "tsx src/scripts/reactivar-evento.ts",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "reconciliar": "tsx src/scripts/reconciliar.ts"
   }
 }

@@ -18,7 +18,7 @@ MERGE (e)-[:DEMUESTRA]->(h);
 // cálculo (así la carga es reproducible). Progreso solo existe en el grafo:
 // su id lo genera Neo4j al crearlo y nunca viaja a otra base.
 MATCH (u:Usuario)-[:REALIZA]->(i:Intento {estado: 'COMPLETADO'})<-[:TIENE]-(s:Simulacion)
-WITH u, s, i ORDER BY i.fecha_fin DESC
+WITH u, s, i ORDER BY i.fecha_fin DESC, i.id_intento DESC
 WITH u, s, collect(i)[0] AS ultimo
 MATCH (s)-[d:DESARROLLA]->(h:Habilidad)
 WITH u, h,
