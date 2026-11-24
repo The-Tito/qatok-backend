@@ -64,7 +64,7 @@ En las lecturas de catálogo, el filtro por estado y dificultad, seguido de un o
 
 ## Diseño de publicación y sincronización
 
-Estas decisiones se aprobaron para el paso #12. El modelo documental y la matriz se actualizarán al implementar la publicación y el consumo de eventos.
+El esquema se aprobó para el paso #12. La administración de escenarios y el consumo ordenado usan estas reglas.
 
 ### Revisión publicada
 

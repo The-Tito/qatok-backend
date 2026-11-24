@@ -12,7 +12,7 @@
 3. **Todo cambio que deba llegar al grafo nace en PostgreSQL**, en la misma transacción que su evento (outbox). Hay un solo mecanismo de sincronización.
 4. **Neo4j es una proyección para recorrer conexiones.** Guarda ids, relaciones y solo las propiedades que C-01 a C-05 usan para filtrar u ordenar. Es dueño de dos datos derivados: `Progreso` y `DEMUESTRA`.
 5. **El contenido publicado es inmutable.** Solo se edita en BORRADOR. Por eso la estructura copiada al grafo nunca se desfasa.
-6. **Una base por operación siempre que se pueda.** Solo 2 operaciones escriben en dos bases, y su peor caso es un huérfano inofensivo (§4).
+6. **Una base por operación siempre que se pueda.** Las operaciones que escriben en PostgreSQL y MongoDB documentan qué queda confirmado y cómo se recupera una escritura parcial (§4).
 
 ## 2. Responsabilidad de cada base
 
@@ -91,7 +91,7 @@ Cada `tipo` de paso tiene un `contexto` distinto (CORREO: remitente, asunto y cu
 | Crear, editar o eliminar habilidad (F1, admin, B) | PG + evento `HABILIDAD_GUARDADA` / `HABILIDAD_ELIMINADA` (solo si ninguna simulación la usa: FK RESTRICT) | Revierte | `201` / `200` / `204` / `409` |
 | Crear simulación (F1, B) | **Solo PG** (`simulacion` en BORRADOR + `simulacion_habilidad`) | Revierte | `201` |
 | Cargar o editar contenido (F1, B) | **Solo Mongo** (reemplaza el documento). Antes verifica en PG que exista y esté en BORRADOR | Nada que compensar | `200` / `409` si está publicada |
-| Publicar (F1, B) | Lee el contenido de Mongo y valida RI-17 y RI-11 → **solo PG**: estado PUBLICADA + evento `SIMULACION_PUBLICADA` con la estructura | Revierte | `200` + `sincronizacion` |
+| Publicar (F1) | Mongo inserta la revisión inmutable de la versión solicitada → PG confirma la referencia, el estado PUBLICADA y `SIMULACION_PUBLICADA` en una transacción | Si falla PG, queda una candidata reutilizable. Si falla Mongo y la copia no se puede confirmar, PG conserva el borrador | `200` + `synchronization` |
 | Desactivar (F1, B) | PG estado INACTIVA + evento `SIMULACION_ESTADO_CAMBIADO` | Revierte | `200` |
 | Eliminar BORRADOR (F1, B) | PG delete → Mongo delete (**2 bases**) | Si falla Mongo: huérfano, lo limpia la reconciliación | `204` |
 | Iniciar intento (F2, C) | PG `intento` (RI-19) + evento `INTENTO_INICIADO` | Revierte | `201` |

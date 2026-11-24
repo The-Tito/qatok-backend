@@ -2,12 +2,18 @@ import type { CatalogQuery, SimulationSummary } from '@qatok/shared';
 import type { Pool } from 'pg';
 import type { z } from 'zod';
 
-const storageDifficulty = { BASIC: 'BASICA', INTERMEDIATE: 'INTERMEDIA', ADVANCED: 'AVANZADA' };
-const summary = `jsonb_build_object(
+export const storageDifficulty = {
+  BASIC: 'BASICA',
+  INTERMEDIATE: 'INTERMEDIA',
+  ADVANCED: 'AVANZADA',
+};
+export const summary = `jsonb_build_object(
   'id', s.id_simulacion, 'title', s.titulo, 'description', s.descripcion,
   'difficulty', CASE s.dificultad WHEN 'BASICA' THEN 'BASIC'
                    WHEN 'INTERMEDIA' THEN 'INTERMEDIATE' ELSE 'ADVANCED' END,
-  'estimated_duration', s.duracion_estimada, 'status', 'PUBLISHED',
+  'estimated_duration', s.duracion_estimada,
+  'status', CASE s.estado WHEN 'BORRADOR' THEN 'DRAFT'
+             WHEN 'PUBLICADA' THEN 'PUBLISHED' ELSE 'INACTIVE' END,
   'skills', COALESCE((
     SELECT jsonb_agg(jsonb_build_object('id', h.id_habilidad, 'name', h.nombre,
       'weight', sh.peso, 'expected_level', sh.nivel_esperado)
