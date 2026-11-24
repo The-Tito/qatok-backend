@@ -156,19 +156,26 @@ El DDL efectivo y la migración están en [database/relational/schema](../../dat
 
 ## 6. Reconciliación y reconstrucción (dueño: A)
 
-`npm run reconciliar` reporta lo que encuentra y lo que repara:
+Desde la raíz del backend:
+
+| Comando | Acción |
+|---|---|
+| `npm run reconciliar` | Diagnóstico de solo lectura y salida JSON. Con escrituras concurrentes puede observar diferencias transitorias. |
+| `npm run reconciliar -- --apply` | Reparación local. Intenta reactivar una vez la cabeza fallida y tramita hasta un lote con el consumidor existente. Luego compara y repara lo que sea seguro. |
+| `npm run grafo:reconstruir` | Previsualiza la reconstrucción desde el estado actual de PostgreSQL y MongoDB. |
+| `npm run grafo:reconstruir -- --apply` | Sustituye la proyección de QATO'K en una transacción de Neo4j. Reinstala restricciones e índices si faltan. |
 
 | Revisión | Detecta | Repara |
 |---|---|---|
-| PG ↔ Neo4j por etiqueta | Ids que faltan o sobran en el grafo | Reemite el evento / borra el nodo |
-| Eventos `FALLIDO` | Eventos sin aplicar | Los reintenta; reporta los que siguen fallando |
-| Mongo ↔ PG | Contenidos y evidencias sin registro en PG con más de 10 minutos | Los borra |
-| Referencias entre bases | Respuestas cuyo paso u opción no existe en el contenido; simulaciones PUBLICADA sin contenido | Solo reporta (indica un error de programación) |
-| Progreso | `nivel_actual` distinto del recálculo | Lo recalcula |
+| PostgreSQL/MongoDB ↔ Neo4j | IDs y relaciones faltantes, sobrantes o con propiedades distintas | Corrige la proyección a partir de las bases dueñas y verifica el resultado antes de confirmar Neo4j. |
+| Outbox | Eventos pendientes y fallidos, en orden | Con `--apply` retoma la cabeza una vez y respeta el orden, el número de intentos y las pausas vigentes. Mientras queden eventos sin aplicar, difiere toda reparación directa del grafo. |
+| MongoDB ↔ PostgreSQL | Borradores, revisiones candidatas e instantáneas sin registro o referencia | Retira candidatas e instantáneas sin referencia de al menos 10 minutos. Para borradores sin fecha, exige dos observaciones del mismo contenido con al menos 10 minutos de diferencia. |
+| Referencias entre bases | Revisión publicada ausente o inválida, respuesta con paso u opción incorrectos, evidencia sin instantánea | Reporta la diferencia para revisión. Las referencias de la proyección deben estar completas antes de cambiar el grafo. |
+| Progreso | Nivel, fecha o relaciones distintos del recálculo DEC-25 | Actualiza el progreso derivado del último intento completado por simulación. Ordena por fecha de fin e ID para resolver empates. |
 
-`npm run grafo:reconstruir` es el último recurso: vacía el grafo y lo reconstruye desde PostgreSQL y MongoDB.
+Las reparaciones están limitadas a bases locales de desarrollo. Para reparar, detén la API. El comando toma bloqueos de PostgreSQL sin esperar y, si hay una transacción incompatible o un consumidor activo, termina sin entrar a la reparación. Los bloqueos coordinan la reparación con la publicación, las evidencias y el outbox. Las escrituras en Neo4j y MongoDB se confirman por separado y el comando se puede volver a ejecutar.
 
-La reconciliación es la evidencia de las pruebas de **consistencia** y **errores** de la guía (§9).
+El informe termina con código 0 si no quedan diferencias, 2 si quedan diferencias o eventos sin aplicar y 1 si la operación falla. Si el mismo evento bloquea el outbox después del reintento, corrige su causa y vuelve a ejecutar el comando. La reconstrucción conserva el orden del outbox y también exige la cola al día. No usa el dataset de desarrollo como fuente.
 
 ## 7. Decisiones que se registran como DEC-24 (paso 0.10)
 

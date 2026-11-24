@@ -6,6 +6,26 @@ const ESPACIO_COLA = 1363235919;
 const PRODUCTOR = 1;
 const CONSUMIDOR = 2;
 
+export async function tryLockOutboxConsumer(client: PoolClient): Promise<boolean> {
+  const { rows } = await client.query<{ disponible: boolean }>(
+    'SELECT pg_try_advisory_xact_lock($1::integer, $2::integer) AS disponible',
+    [ESPACIO_COLA, CONSUMIDOR],
+  );
+  return rows[0]?.disponible === true;
+}
+
+export async function listUnappliedEvents(connection: Pool | PoolClient) {
+  const { rows } = await connection.query<{
+    id_evento: string;
+    tipo: string;
+    estado: 'PENDIENTE' | 'FALLIDO';
+  }>(
+    `SELECT id_evento, tipo, estado
+     FROM evento_sincronizacion WHERE estado <> 'APLICADO' ORDER BY orden_cola`,
+  );
+  return rows;
+}
+
 /** Llamar al final de la transacción de negocio y esperar antes de hacer COMMIT. */
 export async function encolarEventos(cliente: PoolClient, eventos: Evento[]): Promise<void> {
   if (eventos.length === 0) return;
@@ -39,11 +59,7 @@ export function crearOutboxRepository(pool: Pool): OutboxRepositorio {
     let descartar = false;
     try {
       await cliente.query('BEGIN');
-      const { rows } = await cliente.query<{ disponible: boolean }>(
-        'SELECT pg_try_advisory_xact_lock($1::integer, $2::integer) AS disponible',
-        [ESPACIO_COLA, CONSUMIDOR],
-      );
-      const resultado = rows[0]?.disponible ? await trabajo(cliente) : null;
+      const resultado = (await tryLockOutboxConsumer(cliente)) ? await trabajo(cliente) : null;
       await cliente.query('COMMIT');
       return resultado;
     } catch (error) {

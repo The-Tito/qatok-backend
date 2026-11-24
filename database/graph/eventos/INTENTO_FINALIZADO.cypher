@@ -10,7 +10,7 @@ SET i.estado = $estado, i.fecha_fin = datetime($fecha_fin), i.puntuacion = toFlo
 MATCH (u:Usuario)-[:REALIZA]->(:Intento {id_intento: $id_intento})<-[:TIENE]-(:Simulacion)-[:DESARROLLA]->(h:Habilidad)
 WITH DISTINCT u, h
 MATCH (u)-[:REALIZA]->(i:Intento {estado: 'COMPLETADO'})<-[:TIENE]-(s:Simulacion)-[:DESARROLLA]->(h)
-WITH u, h, s, i ORDER BY i.fecha_fin DESC
+WITH u, h, s, i ORDER BY i.fecha_fin DESC, i.id_intento DESC
 WITH u, h, s, collect(i)[0] AS ultimo
 MATCH (s)-[d:DESARROLLA]->(h)
 WITH u, h,

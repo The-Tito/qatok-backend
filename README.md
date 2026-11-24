@@ -224,3 +224,7 @@ Las reglas completas están en [convenciones §7](context/convenciones.md).
 ---
 
 Universidad Politécnica de Chiapas · Bases de Datos en la Nube · 2026
+
+## Reconciliar las bases
+
+Ejecuta `npm run reconciliar` para diagnosticar diferencias entre PostgreSQL, MongoDB y Neo4j. Con las bases locales activas y la API detenida, usa `npm run reconciliar -- --apply` para reparar. Para una reconstrucción completa de la proyección, previsualiza con `npm run grafo:reconstruir` y ejecuta con `npm run grafo:reconstruir -- --apply`. Consulta las [reglas de reconciliación](docs/modelos/matriz-propiedad.md#6-reconciliación-y-reconstrucción-dueño-a).

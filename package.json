@@ -35,7 +35,9 @@
     "dev:api": "npm run dev -w @qatok/backend",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
-    "setup:env": "node scripts/crear-env.mjs"
+    "setup:env": "node scripts/crear-env.mjs",
+    "reconciliar": "npm run reconciliar -w @qatok/backend --",
+    "grafo:reconstruir": "npm run reconciliar -w @qatok/backend -- --rebuild-graph"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
