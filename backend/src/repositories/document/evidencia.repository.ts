@@ -29,5 +29,8 @@ export function crearEvidenciaRepository(db: Db) {
     eliminar(idEvidencia: string) {
       return evidencias.deleteOne({ _id: Uuid.parse(idEvidencia) });
     },
+    removeByIds(ids: string[]) {
+      return evidencias.deleteMany({ _id: { $in: ids.map((id) => Uuid.parse(id)) } });
+    },
   };
 }

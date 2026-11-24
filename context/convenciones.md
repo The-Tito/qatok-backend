@@ -13,7 +13,7 @@
 | PostgreSQL | Columna `UUID` |
 | MongoDB | `_id` = el UUID como **string**. En `contenidos_simulacion`, `_id` = `id_simulacion`; en `evidencias`, `_id` = `id_evidencia`. Los ids anidados (`id_paso`, `id_opcion`) también son UUID string |
 | Neo4j | Propiedad string `id_<entidad>` con restricción de unicidad |
-| Nombre | `id_<entidad>` en todas partes: columna, campo, propiedad y JSON de la API |
+| Nombre | `id_<entidad>` en el modelo de persistencia y los eventos. El contrato HTTP indica el nombre público, como `id` o `skill_id` en F1 |
 | Datos de prueba comunes | Prefijo fijo `e0000000-0000-4000-8000-` (el que ya usan los datos de Neo4j) |
 | Datos creados por las pruebas | UUID aleatorio; la prueba los borra al terminar |
 
@@ -31,10 +31,11 @@ El **dominio va en español** con los nombres exactos del KG (`Simulacion`, `id_
 | Etiquetas Neo4j | `PascalCase` singular (KG) | `Usuario`, `Intento` |
 | Relaciones Neo4j | `UPPER_SNAKE_CASE` (KG) | `TIENE_PROGRESO`, `CONDUCE_A` |
 | Propiedades Neo4j | `snake_case` (KG) | `nivel_actual` |
-| JSON de la API | **`snake_case`, igual que el modelo**. No hay traducción a camelCase: un campo se llama igual en la base, en la API y en la interfaz | `{ "id_intento": "…", "fecha_inicio": "…" }` |
-| Variables y funciones TS | `camelCase` | `registrarRespuesta()` |
-| Tipos, interfaces, clases TS | `PascalCase` | `Intento`, `IntentoRepository` |
-| Archivos TS | `<entidad>.<capa>.ts` | `intento.service.ts`, `intento.repository.ts`, `intentos.routes.ts` |
+| Rutas HTTP nuevas | Recursos y operaciones en inglés | `/api/simulations`, `/api/auth/register` |
+| JSON de la API | Campos en inglés, con `snake_case` cuando tienen varias palabras | `{ "id": "…", "registered_at": "…" }` |
+| Variables y funciones TS nuevas | Inglés y `camelCase` | `currentUser`, `findPublished()` |
+| Tipos, interfaces y clases TS nuevos | Inglés y `PascalCase` | `Account`, `AccountRepository` |
+| Archivos TS nuevos | `<recurso>.<capa>.ts` | `account.service.ts`, `account.repository.ts` |
 | Componentes React | `PascalCase.tsx` | `PasoSimulacion.tsx` |
 | Scripts de base | `NN-descripcion.<sql\|js\|cypher>`, en orden de ejecución | `01-esquema.sql`, `02-indices.sql` |
 
@@ -90,29 +91,29 @@ El contrato completo (endpoints) es el paso 0.3. Estas reglas aplican a **todos*
 
 | Tema | Regla |
 |---|---|
-| Prefijo | Todo bajo `/api`. Ejemplo: `/api/simulaciones`, `/api/health` |
+| Prefijo | Todo bajo `/api`. Ejemplo: `/api/simulations`, `/api/health` |
 | Formato | JSON UTF-8, campos en `snake_case` |
-| Sesión | `Authorization: Bearer <jwt>`. El token lleva `id_usuario` y `rol`, y vence en 8 h |
+| Sesión | `Authorization: Bearer <jwt>`. El token lleva el ID de usuario en `sub` y expira en 8 h. PostgreSQL determina si la cuenta sigue activa y cuál es su rol |
 | Respuesta de una entidad | El objeto directo: `{ "id_simulacion": "…", … }` |
-| Listas | `{ "datos": [ … ], "total": 42 }`; paginación con `?limite=20&desplazamiento=0` (límite máximo 100) |
-| Operaciones que generan eventos | Agregan `"sincronizacion": { "grafo": "APLICADO" \| "PENDIENTE", "eventos": ["<id_evento>"] }` (matriz §4) |
-| Error | `{ "error": { "codigo": "INTENTO_NO_EN_CURSO", "mensaje": "El intento ya terminó", "detalles": { … } } }`. `codigo` en `UPPER_SNAKE_CASE`, estable para que la interfaz lo use; `mensaje` en español, para mostrarlo al usuario |
+| Listas | `{ "items": [ … ], "total": 42 }`. Paginación con `?limit=20&offset=0`, límite máximo 100 |
+| Operaciones que generan eventos | Agregan `"synchronization": { "graph": "APPLIED" \| "PENDING", "event_ids": ["<id_evento>"] }` |
+| Error | `{ "error": { "code": "VALIDATION_ERROR", "message": "Invalid request data", "details": { … } } }`. El código estable en `UPPER_SNAKE_CASE` permite localizar mensajes en el frontend |
 
 **Códigos HTTP:**
 
 | Código | Cuándo |
 |---|---|
-| `200` / `201` / `204` | OK / creado / sin contenido. Un borrado **sin** eventos responde `204`; un borrado **con** eventos responde `200 { "eliminado": true, "sincronizacion": … }` |
-| `400` `VALIDACION` | Entrada inválida (zod); `detalles` lista los campos |
-| `401` `NO_AUTENTICADO` | Sin token o token inválido |
-| `403` `SIN_PERMISO` | Autenticado pero sin permiso (rol o dueño) |
-| `404` `NO_ENCONTRADO` | No existe, o no es tuyo (no se revela que existe) |
-| `409` | Conflicto con una regla de negocio (p. ej. `SIMULACION_PUBLICADA`, `CORREO_DUPLICADO`) |
-| `410` `ENLACE_VENCIDO` | Token de compartición expirado |
-| `500` `ERROR_INTERNO` | Error no previsto (el detalle solo va al log) |
-| `503` `BASE_NO_DISPONIBLE` | Una base necesaria para leer o escribir está caída; `detalles.base` dice cuál |
+| `200` / `201` / `204` | OK / creado / sin contenido. Un borrado con evento devuelve `200 { "deleted": true, "synchronization": … }` |
+| `400` `VALIDATION_ERROR` | Entrada inválida. Cuando corresponde, `details.fields` lista los campos |
+| `401` `UNAUTHENTICATED` | Sesión ausente, inválida o revocada |
+| `403` `FORBIDDEN` | Cuenta autenticada sin el rol requerido |
+| `404` `NOT_FOUND` | Recurso inexistente o ajeno |
+| `409` | Conflicto con una regla de negocio, como `EMAIL_ALREADY_REGISTERED` |
+| `410` | Enlace de compartición expirado |
+| `500` `INTERNAL_ERROR` | Error no previsto |
+| `503` `DATABASE_UNAVAILABLE` | Una base requerida no está disponible. `details.database` indica cuál |
 
-Una escritura que se completó en la base dueña pero dejó el grafo pendiente **no** es un error: responde `2xx` con `sincronizacion.grafo = "PENDIENTE"`.
+Una escritura confirmada en PostgreSQL con el grafo pendiente devuelve `2xx` y `synchronization.graph = "PENDING"`. Al cambiar una ruta, sus campos o errores, actualizar el contrato, los esquemas de `shared/` y las pruebas de esa ruta en el mismo PR. `GET /api/health` conserva su respuesta inicial.
 
 ## 6. Código
 
