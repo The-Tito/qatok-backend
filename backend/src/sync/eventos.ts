@@ -82,7 +82,7 @@ export const PAYLOADS = {
     id_intento: Uuid,
     titulo: z.string().min(1),
   }),
-  EVIDENCIA_ELIMINADA: z.object({ id_evidencia: Uuid }),
+  EVIDENCIA_ELIMINADA: z.object({ id_evidencia: Uuid, id_usuario: Uuid.optional() }),
 } satisfies Record<TipoEvento, z.ZodType>;
 
 export type PayloadDe<T extends TipoEvento> = z.infer<(typeof PAYLOADS)[T]>;

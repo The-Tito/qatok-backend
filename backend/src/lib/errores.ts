@@ -33,10 +33,19 @@ export function baseNoDisponible(error: unknown): NombreBase | null {
   if (
     name.startsWith('MongoServerSelection') ||
     name.startsWith('MongoNetwork') ||
-    name === 'MongoWriteConcernError'
+    name === 'MongoWriteConcernError' ||
+    name === 'MongoTopologyClosedError'
   )
     return 'documental';
-  if (codigo === 'ServiceUnavailable' || codigo === 'SessionExpired') return 'grafo';
+  if (
+    codigo === 'ServiceUnavailable' ||
+    codigo === 'SessionExpired' ||
+    (typeof codigo === 'string' &&
+      /^(Neo\.(?:ClientError|TransientError)\.Transaction\.TransactionTimedOut|Neo\.TransientError\.General\.DatabaseUnavailable)$/.test(
+        codigo,
+      ))
+  )
+    return 'grafo';
   if (
     codigo === 'ECONNREFUSED' ||
     codigo === 'ETIMEDOUT' ||

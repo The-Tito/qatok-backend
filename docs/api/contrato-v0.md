@@ -1,6 +1,6 @@
 # Contrato de la API v0 — QATO'K
 
-- **Entregable E6 · contrato 0.4.0.** Salud, F1 y F2 tienen implementación. Las demás secciones documentan flujos previstos.
+- **Entregable E6 · contrato 0.5.0.** Salud, F1, F2 y F3a tienen implementación. Las demás secciones documentan flujos previstos.
 - **Se apoya en:** `context/convenciones.md` §5 (prefijo `/api`, `snake_case`, formato de error, códigos HTTP) y `docs/modelos/matriz-propiedad.md` §4 (en qué bases escribe cada operación).
 - **Del contrato al código:** en el paso 0.7 estas formas se escriben como esquemas zod en `shared/`, y de ahí se genera el OpenAPI (`/api/docs`). Si el código y este documento difieren, se corrige el que esté mal mediante un PR.
 - **Para que la interfaz avance sin backend:** C puede simular cualquier endpoint con los ejemplos de este documento.
@@ -18,7 +18,7 @@ Los errores de la API usan `{ error: { code, message, details? } }`. Los consumi
 
 ## 2. Objetos de los flujos previstos
 
-Los objetos siguientes conservan la notación del diseño original. Para los objetos vigentes, consulta F1 y F2 y sus esquemas en `shared/src/`.
+Los objetos siguientes conservan la notación del diseño original. Para los objetos vigentes, consulta F1, F2 y F3a y sus esquemas en `shared/src/`.
 
 ```jsonc
 // Usuario
@@ -136,40 +136,32 @@ Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FOR
 - Si Neo4j no confirma los eventos después del commit, `synchronization.graph` es `PENDING` y el cambio sigue guardado en PostgreSQL.
 - **Puntuación provisional (D-21, P-03):** promedio de las valoraciones elegidas, en una escala de 0 a 100, redondeado a dos decimales. En un empate exacto se toma el centésimo par.
 
-### F3a Perfil y evidencias — dueño A (RF-06, RF-07, RF-08)
+### F3a Perfil y evidencias (RF-06, RF-07, RF-08)
 
-| Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
-|---|---|---|---|---|---|
-| `GET /api/perfil` | Usuario | **PG L + Neo4j L + Mongo L** | — | `200` (abajo): **el flujo integrado** | `503` si falta PG; si falta Neo4j o Mongo responde con `datos_incompletos` |
-| `GET /api/perfil/habilidades` | Usuario | Neo4j L | — | `200 { datos: HabilidadPerfil[] }` (C-02) | — |
-| `GET /api/perfil/recomendaciones` | Usuario | Neo4j L | `limite?` | `200 { datos: [{ simulacion: SimulacionResumen, habilidades_a_reforzar: [nombre] }] }` (C-01) | — |
-| `GET /api/perfil/habilidades/:id_habilidad/evolucion` | Usuario | Neo4j L | — | `200 { nivel_actual, puntos: [{ fecha, id_simulacion, titulo, puntuacion }] }` (C-05) | `404` |
-| `GET /api/perfil/intentos/:id_intento/recorrido` | Dueño | Neo4j L + Mongo L | — | `200 { intento, decisiones: [{ secuencia, paso: { titulo, tipo }, opcion: { descripcion }, consecuencias[], retroalimentacion }] }` (C-03) | `404` |
-| `POST /api/evidencias` | Usuario | Mongo E → PG E + *ev* | `{ id_intento, titulo? }` | `201 { evidencia, sincronizacion }` | `404` (no es suyo: RI-14), `409 INTENTO_NO_COMPLETADO` (RI-25), `409 EVIDENCIA_EXISTENTE` (una por intento) |
-| `GET /api/evidencias` | Usuario | PG L (+ Neo4j L si hay filtro) | Query: `id_habilidad?` (C-04), paginación | `200 { datos: [{ id_evidencia, titulo, visibilidad, fecha_generacion, simulacion: { id_simulacion, titulo }, habilidades: [nombre], comparticiones_activas: n }], total }` | — |
-| `GET /api/evidencias/:id_evidencia` | Dueño | PG L + Mongo L | — | `200 { evidencia, contenido }` | `404` |
-| `PATCH /api/evidencias/:id_evidencia` | Dueño | PG E | `{ titulo?, visibilidad? }` | `200 evidencia` | `400`, `404` |
-| `DELETE /api/evidencias/:id_evidencia` | Dueño | PG E + *ev* → Mongo E | — | `200 { eliminado: true, sincronizacion }` | `404` |
+| Método y ruta | Acceso | Bases | Entrada | Respuesta |
+|---|---|---|---|---|
+| `GET /api/profile` | Usuario | PG L + Neo4j L + Mongo L | — | `200 Profile` |
+| `GET /api/profile/skills` | Usuario | Neo4j L | — | `200 { items: ProfileSkill[] }` (C-02) |
+| `GET /api/profile/recommendations` | Usuario | Neo4j L + PG L | `limit?` | `200 { items: Recommendation[] }` (C-01) |
+| `GET /api/profile/skills/:skillId/evolution` | Usuario | Neo4j L | — | `200 { current_level, points: [{ finished_at, simulation: { id, title }, score, weight }] }` (C-05) |
+| `GET /api/profile/attempts/:attemptId/path` | Dueño | PG L + Neo4j L + Mongo L | — | `200 { attempt, decisions, graph_pending }` (C-03) |
+| `POST /api/evidence` | Usuario | PG L + Mongo L/E → PG E + *ev* | `{ attempt_id, title? }` | `201 { evidence, synchronization }` |
+| `GET /api/evidence` | Usuario | PG L (+ Neo4j L con filtro) | `skill_id?`, `limit?`, `offset?` | `200 { items, total }` (C-04 cuando se filtra) |
+| `GET /api/evidence/:evidenceId` | Dueño | PG L + Mongo L | — | `200 { evidence, content }` |
+| `PATCH /api/evidence/:evidenceId` | Dueño | PG E (+ *ev* si cambia el título) | `{ title?, visibility? }`, al menos un campo | `200 { evidence, synchronization }`, con sincronización nula si no cambia el título |
+| `DELETE /api/evidence/:evidenceId` | Dueño | PG E + *ev* → Mongo E | — | `200 { deleted: true, synchronization }` |
 
-Respuesta de `GET /api/perfil`:
+`Profile` incluye `user: { id, name }`, `summary: { completed_attempts, evidence_count }`, `skills`, `recommendations`, `recent_evidence`, `incomplete_data` y `pending_sync_count`. Las habilidades incluyen `id, name, current_level, target, classification, correct, partial, incorrect`. Las recomendaciones incluyen `simulation: SimulationSummary, skills_to_improve, priority`. Se valida en PostgreSQL que las recomendaciones sigan publicadas.
 
-```json
-{
-  "usuario": { "id_usuario": "uuid", "nombre": "Ana López" },
-  "resumen": { "intentos_completados": 3, "evidencias": 1 },
-  "habilidades": [
-    { "id_habilidad": "uuid", "nombre": "Comunicación efectiva", "nivel_actual": 75, "objetivo": 70,
-      "clasificacion": "FORTALEZA", "aciertos": 2, "parciales": 1, "errores": 0 } ],
-  "recomendaciones": [ { "id_simulacion": "uuid", "titulo": "Tres entregas para mañana", "habilidades_a_reforzar": ["Gestión del tiempo"] } ],
-  "evidencias_recientes": [ { "id_evidencia": "uuid", "titulo": "Manejo de un cliente molesto" } ],
-  "datos_incompletos": [],
-  "sincronizacion_pendiente": 0
-}
-```
+El perfil devuelve hasta cinco recomendaciones y cinco evidencias recientes. Cada evidencia reciente incluye la descripción de su instantánea. Si Neo4j o MongoDB no responden, el perfil conserva los datos disponibles y añade `graph` o `document` a `incomplete_data`. Una instantánea faltante también marca `document`. Si falla PostgreSQL, el perfil responde `503 DATABASE_UNAVAILABLE`. `pending_sync_count` cuenta los eventos sin aplicar atribuibles al usuario y sus intentos.
 
-- `usuario` y `resumen` salen de PostgreSQL; `habilidades` y `recomendaciones`, de Neo4j; los títulos y textos, de Mongo cuando hace falta.
-- `datos_incompletos` lista las bases que no respondieron (p. ej. `["grafo"]`). Las secciones de esas bases vienen vacías, en lugar de fallar toda la página.
-- `sincronizacion_pendiente` = eventos del usuario que aún no llegan al grafo. Si es mayor que 0, la interfaz avisa que el progreso se está actualizando.
+El recorrido devuelve decisiones con `sequence, step: { id, title, type }, option: { id, description }, consequences, feedback`. PostgreSQL valida la propiedad y conserva el recorrido confirmado. MongoDB aporta los textos de la revisión publicada. La API devuelve `graph_pending: true` si C-03 aún no refleja ese recorrido. Las rutas individuales devuelven `503 DATABASE_UNAVAILABLE` si falla una base requerida.
+
+`Evidence` incluye `id, attempt_id, title, generated_at, visibility`. El listado añade `simulation, skills, active_shares` y usa `limit` de 1 a 100 (20 por defecto) y `offset` de 0 por defecto. Los enlaces cuentan si están activos y no han vencido. El filtro de habilidad usa la proyección de Neo4j y respeta propiedad y existencia en PostgreSQL. Las evidencias nacen `PRIVATE`. Cambiar a `PUBLIC` no concede acceso anónimo al detalle.
+
+Solo se genera una evidencia por intento completado. Si no se envía título, se usa el de la simulación. La instantánea conserva descripción, simulación, puntuación, habilidades, decisiones y fecha de creación. El propietario puede cambiar título y visibilidad sin alterar la instantánea. Si PostgreSQL rechaza la transacción se intenta retirar el documento. Si no se puede confirmar su estado, la reconciliación se encarga de revisar la copia. El borrado confirma registro y evento antes de retirar el documento.
+
+Los recursos ausentes o ajenos devuelven `404 NOT_FOUND`. Generar evidencia de un intento sin completar devuelve `409 ATTEMPT_NOT_COMPLETED`. Una evidencia ya existente devuelve `409 EVIDENCE_ALREADY_EXISTS` con `details.evidence_id`. Una revisión o instantánea ausente devuelve `503 PUBLISHED_CONTENT_UNAVAILABLE` o `503 EVIDENCE_CONTENT_UNAVAILABLE`, según corresponda. Las formas completas están en `shared/src/f3a.ts`.
 
 ### F3b Compartir evidencias — dueño B (RF-09)
 
@@ -191,8 +183,8 @@ Respuesta de `GET /api/perfil`:
 | `f1.routes.ts` | `/api/auth/*`, `/api/me`, `/api/skills`, `/api/admin/skills/*`, `/api/simulations/*` | Antonio |
 | `simulation-admin.routes.ts` | `/api/admin/simulations/*` | Antonio |
 | `attempt.routes.ts` | `/api/attempts`, `/api/attempts/*` | Antonio |
-| `perfil.routes.ts` | `/api/perfil/*` | A |
-| `evidencias.routes.ts` | `/api/evidencias` (GET lista y detalle, POST, PATCH, DELETE) | A |
+| `profile.routes.ts` | `/api/profile`, `/api/profile/*` | A |
+| `evidence.routes.ts` | `/api/evidence`, `/api/evidence/*` (GET, POST, PATCH, DELETE) | A |
 | `comparticiones.routes.ts` | `/api/evidencias/:id/comparticiones`, `/api/comparticiones/*`, `/api/publico/*` | B |
 
 ## 5. Cobertura
@@ -200,7 +192,7 @@ Respuesta de `GET /api/perfil`:
 | Requisito | Endpoints |
 |---|---|
 | Altas, cambios, consultas y bajas por base (nota de la guía) | PG: usuario, habilidad, simulación, intento, comparticion · Mongo: contenido (`PUT`/`GET`/`DELETE`), evidencia · Neo4j: lecturas C-01 a C-05 y escrituras por eventos |
-| Flujo integrado (guía §8.1) | `GET /api/perfil` |
+| Flujo integrado (guía §8.1) | `GET /api/profile` |
 | Escritura en varias bases con fallo parcial (guía §9) | `POST /api/admin/simulations/:simulationId/publish`, `DELETE /api/admin/simulations/:simulationId`, `DELETE /api/me`, evidencias previstas |
-| Consistencia (guía §9) | Todo lo que devuelve `sincronizacion` + `GET /api/perfil` (`sincronizacion_pendiente`) |
+| Consistencia (guía §9) | Operaciones con `synchronization` y `GET /api/profile` (`pending_sync_count`) |
 | RF-01 a RF-09 | Todos cubiertos. RF-10 (móvil, sesiones cortas) se cubre en la interfaz: retomar un intento con `409 ACTIVE_ATTEMPT_EXISTS` + `GET /api/attempts/:attemptId` |

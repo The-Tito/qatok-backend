@@ -111,7 +111,10 @@ export function aPlano(valor: unknown): unknown {
   return valor;
 }
 
-export function crearPerfilRepositoryGrafo(driver: Driver): PerfilRepositoryGrafo {
+export function crearPerfilRepositoryGrafo(
+  driver: Driver,
+  timeoutMs = 5_000,
+): PerfilRepositoryGrafo {
   const cypher = {
     c01: cargarConsulta('C-01-recomendaciones.cypher'),
     c02: cargarConsulta('C-02-fortalezas.cypher'),
@@ -121,10 +124,13 @@ export function crearPerfilRepositoryGrafo(driver: Driver): PerfilRepositoryGraf
   };
 
   async function filas<T>(consulta: string, parametros: Record<string, unknown>): Promise<T[]> {
-    const { records } = await driver.executeQuery(consulta, parametros, {
-      routing: neo4j.routing.READ,
-    });
-    return records.map((r) => aPlano(r.toObject()) as T);
+    const session = driver.session({ defaultAccessMode: neo4j.session.READ });
+    try {
+      const { records } = await session.run(consulta, parametros, { timeout: timeoutMs });
+      return records.map((r) => aPlano(r.toObject()) as T);
+    } finally {
+      await session.close();
+    }
   }
 
   return {

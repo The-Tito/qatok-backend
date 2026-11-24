@@ -50,6 +50,15 @@ export function createCatalogRepository(pool: Pool) {
       );
       return rows[0]!;
     },
+    async findPublishedByIds(ids: string[]) {
+      if (ids.length === 0) return [];
+      const { rows } = await pool.query<{ simulation: SimulationSummary }>(
+        `SELECT ${summary} AS simulation FROM simulacion s
+         WHERE s.id_simulacion = ANY($1::uuid[]) AND s.estado = 'PUBLICADA'`,
+        [ids],
+      );
+      return rows.map(({ simulation }) => simulation);
+    },
     async findPublished(id: string) {
       const { rows } = await pool.query<{ simulation: SimulationSummary }>(
         `SELECT ${summary} AS simulation FROM simulacion s WHERE s.id_simulacion = $1 AND s.estado = 'PUBLICADA'`,
