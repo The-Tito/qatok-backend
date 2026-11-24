@@ -46,9 +46,9 @@
     ],
 
     "simulacion": [
-      { "id_simulacion": "e0000000-0000-4000-8000-000000000301", "titulo": "Cliente molesto por un retraso", "descripcion": "Un cliente reclama por un pedido que lleva una semana de retraso.", "dificultad": "INTERMEDIA", "duracion_estimada": 15, "estado": "PUBLICADA" },
-      { "id_simulacion": "e0000000-0000-4000-8000-000000000302", "titulo": "Tres entregas para mañana", "descripcion": "Tienes tres tareas con la misma fecha límite y no llegas a todas.", "dificultad": "BASICA", "duracion_estimada": 10, "estado": "PUBLICADA" },
-      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "titulo": "Presentación ante dirección", "descripcion": "Debes presentar resultados negativos a la dirección.", "dificultad": "AVANZADA", "duracion_estimada": null, "estado": "BORRADOR" }
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000301", "titulo": "Cliente molesto por un retraso", "descripcion": "Un cliente reclama por un pedido que lleva una semana de retraso.", "dificultad": "INTERMEDIA", "duracion_estimada": 15, "estado": "PUBLICADA", "id_revision_publicada": "e0000000-0000-4000-8000-000000001301" },
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000302", "titulo": "Tres entregas para mañana", "descripcion": "Tienes tres tareas con la misma fecha límite y no llegas a todas.", "dificultad": "BASICA", "duracion_estimada": 10, "estado": "PUBLICADA", "id_revision_publicada": "e0000000-0000-4000-8000-000000001302" },
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "titulo": "Presentación ante dirección", "descripcion": "Debes presentar resultados negativos a la dirección.", "dificultad": "AVANZADA", "duracion_estimada": null, "estado": "BORRADOR", "id_revision_publicada": null }
     ],
 
     "simulacion_habilidad": [

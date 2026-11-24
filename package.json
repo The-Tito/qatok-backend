@@ -17,6 +17,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tests",
     "test": "vitest run",
     "validar:dataset": "python3 database/seed/validar_dataset.py",
+    "db:relational:reset": "node database/relational/ejecutar.mjs",
     "db:graph:generar": "node database/graph/data/generar-carga.mjs",
     "db:graph:comprobar": "node database/graph/data/generar-carga.mjs --comprobar",
     "db:graph:reset": "node database/graph/ejecutar.mjs reset",
