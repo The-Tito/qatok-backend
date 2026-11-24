@@ -113,14 +113,15 @@ La API nunca afirma que el grafo está al día si el evento no se aplicó.
 ## 5. Sincronización hacia Neo4j (dueño: A; tabla: B)
 
 **Mecanismo:** outbox transaccional con **aplicación inmediata** y reintento.
-1. El servicio escribe el cambio y su evento en la misma transacción de PostgreSQL.
-2. Tras el commit, el servicio intenta aplicar el evento en Neo4j de inmediato. Si lo logra, lo marca `APLICADO`.
-3. Si no lo logra, queda `PENDIENTE`. Un proceso dentro del backend reintenta cada pocos segundos, tomando los eventos con `FOR UPDATE SKIP LOCKED` en orden de `creado_en`. Hace hasta 5 intentos con espera creciente y después lo marca `FALLIDO`.
-4. Todo efecto en el grafo es un `MERGE` por id: **aplicar dos veces da lo mismo**. El progreso se recalcula desde cero, nunca se incrementa.
+1. El servicio escribe el cambio y encola los eventos antes de confirmar PostgreSQL. Un bloqueo transaccional común de productores preserva el orden de confirmación en `orden_cola`.
+2. Tras el commit, el envío inmediato y el temporizador consumen la primera fila sin aplicar. Un bloqueo transaccional de consumidor evita que dos instancias avancen la cola al mismo tiempo.
+3. Cada fallo guarda el número de intentos y la siguiente fecha. Las esperas son de 2, 4, 8 y 16 segundos. Si el quinto intento falla, la fila pasa a `FALLIDO` y la cola se pausa hasta reactivarla.
+4. Si el grafo confirmó un evento y no se pudo registrar `APLICADO`, se conserva la respuesta `PENDIENTE` y se reintenta la primera fila. Los efectos del evento se pueden volver a aplicar y el progreso se recalcula desde los intentos.
 
 ```sql
 CREATE TABLE evento_sincronizacion (
   id_evento     UUID PRIMARY KEY,
+  orden_cola    BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
   tipo          VARCHAR(40)  NOT NULL,
   id_entidad    UUID         NOT NULL,
   payload       JSONB        NOT NULL,
@@ -129,10 +130,14 @@ CREATE TABLE evento_sincronizacion (
   intentos      INTEGER      NOT NULL DEFAULT 0,
   ultimo_error  TEXT         NULL,
   creado_en     TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  proximo_intento TIMESTAMPTZ NULL,
   aplicado_en   TIMESTAMPTZ  NULL
 );
-CREATE INDEX ix_eventos_pendientes ON evento_sincronizacion (estado, creado_en);
+CREATE INDEX ix_evento_sin_aplicar ON evento_sincronizacion (orden_cola)
+  WHERE estado <> 'APLICADO';
 ```
+
+El DDL efectivo y la migración están en [database/relational/schema](../../database/relational/schema/). El comando de reactivación se describe en la [guía de bases](../../database/README.md#cola-de-sincronización).
 
 | Evento | Lo emite | Efecto en Neo4j |
 |---|---|---|

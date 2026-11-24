@@ -75,18 +75,26 @@ describe('aplicación inmediata', () => {
   it('nunca lanza: si el outbox también falla, responde PENDIENTE', async () => {
     const { outbox, procesador, caidos } = preparar();
     const e = usuario('0101');
+    outbox.insertar(e);
     caidos.add(e.id_evento);
     outbox.registrarFallo = () => Promise.reject(new Error('PostgreSQL caído'));
     await expect(procesador.aplicarAhora([e])).resolves.toMatchObject({ grafo: 'PENDIENTE' });
   });
 
-  it('si el grafo se actualizó pero no se pudo marcar, responde APLICADO (se reaplicará)', async () => {
-    const { outbox, procesador } = preparar();
-    const e = usuario('0101');
-    outbox.insertar(e);
+  it('si el grafo se actualizó pero no se pudo marcar, conserva la cabeza pendiente', async () => {
+    const { outbox, procesador, aplicados } = preparar();
+    const [e, siguiente] = [usuario('0101'), usuario('0102')];
+    outbox.insertar(e, siguiente);
     outbox.marcarAplicado = () => Promise.reject(new Error('PostgreSQL caído'));
-    expect((await procesador.aplicarAhora([e])).grafo).toBe('APLICADO');
+    expect((await procesador.aplicarAhora([e, siguiente])).grafo).toBe('PENDIENTE');
     expect(outbox.fila(e.id_evento).estado).toBe('PENDIENTE');
+    expect(aplicados).toEqual([e.id_evento]);
+  });
+
+  it('el envío inmediato nunca aplica un evento ajeno a la cola', async () => {
+    const { procesador, aplicados } = preparar();
+    expect((await procesador.aplicarAhora([usuario('0101')])).grafo).toBe('PENDIENTE');
+    expect(aplicados).toEqual([]);
   });
 });
 
@@ -129,7 +137,7 @@ describe('reintento de PENDIENTE', () => {
     const [a, b] = [usuario('0101'), usuario('0102')];
     outbox.insertar(a, b);
     caidos.add(a.id_evento);
-    expect(await procesador.procesarPendientes()).toMatchObject({ pendientes: 1, enEspera: 1 });
+    expect(await procesador.procesarPendientes()).toMatchObject({ pendientes: 1, aplicados: 0 });
     expect(aplicados).toEqual([]);
 
     caidos.clear();
@@ -138,13 +146,19 @@ describe('reintento de PENDIENTE', () => {
     expect(aplicados).toEqual([a.id_evento, b.id_evento]);
   });
 
-  it('un FALLIDO no bloquea la cola', async () => {
+  it('un FALLIDO bloquea la cola hasta reactivar la cabeza', async () => {
     const { outbox, procesador, caidos, aplicados } = preparar({ maxIntentos: 1 });
     const [a, b] = [usuario('0101'), usuario('0102')];
     outbox.insertar(a, b);
     caidos.add(a.id_evento);
-    expect(await procesador.procesarPendientes()).toMatchObject({ fallidos: 1, aplicados: 1 });
-    expect(aplicados).toEqual([b.id_evento]);
+    expect(await procesador.procesarPendientes()).toMatchObject({ fallidos: 1, aplicados: 0 });
+    expect((await procesador.aplicarAhora([b])).grafo).toBe('PENDIENTE');
+    expect(aplicados).toEqual([]);
+    expect(await outbox.reactivarCabeza(b.id_evento)).toBe(false);
+    expect(await outbox.reactivarCabeza(a.id_evento)).toBe(true);
+    caidos.clear();
+    expect(await procesador.procesarPendientes()).toMatchObject({ aplicados: 2 });
+    expect(aplicados).toEqual([a.id_evento, b.id_evento]);
   });
 
   it('iniciar() revisa periódicamente y detener() lo para', async () => {

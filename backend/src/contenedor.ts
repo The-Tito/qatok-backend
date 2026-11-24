@@ -8,8 +8,11 @@ import type { Conexiones } from './db/conexiones.js';
 import type { Logger } from './lib/logger.js';
 import { crearHealthRepositoryDocumental } from './repositories/document/health.repository.js';
 import { crearHealthRepositoryGrafo } from './repositories/graph/health.repository.js';
+import { crearAplicadorGrafo } from './repositories/graph/sincronizacion.repository.js';
 import { crearHealthRepositoryRelacional } from './repositories/relational/health.repository.js';
+import { crearOutboxRepository } from './repositories/relational/outbox.repository.js';
 import { crearHealthService } from './services/health.service.js';
+import { crearProcesadorSincronizacion } from './sync/procesador.js';
 import paquete from '../package.json' with { type: 'json' };
 
 export function crearControladores(conexiones: Conexiones, entorno: Entorno, logger: Logger) {
@@ -34,3 +37,11 @@ export function crearControladores(conexiones: Conexiones, entorno: Entorno, log
 }
 
 export type Controladores = ReturnType<typeof crearControladores>;
+
+export function crearSincronizacion(conexiones: Conexiones, logger: Logger) {
+  return crearProcesadorSincronizacion(
+    crearOutboxRepository(conexiones.postgres),
+    crearAplicadorGrafo(conexiones.neo4j),
+    { logger },
+  );
+}

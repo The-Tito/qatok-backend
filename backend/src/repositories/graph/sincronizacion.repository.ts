@@ -35,14 +35,15 @@ export function crearAplicadorGrafo(driver: Driver): AplicadorGrafo {
       if (!sentencias) throw new Error(`Tipo de evento sin script: ${evento.tipo}`);
       const sesion = driver.session();
       try {
-        await sesion.executeWrite(async (tx) => {
-          for (const cypher of sentencias) {
-            const { records } = await tx.run(cypher, evento.payload);
-            if (records.some((r) => r.has('ok') && r.get('ok') !== true)) {
-              throw new EventoNoAplicable(evento);
-            }
+        // El outbox controla los reintentos. Acotamos la transacción remota por intento.
+        const tx = sesion.beginTransaction({ timeout: 5_000 });
+        for (const cypher of sentencias) {
+          const { records } = await tx.run(cypher, evento.payload);
+          if (records.some((r) => r.has('ok') && r.get('ok') !== true)) {
+            throw new EventoNoAplicable(evento);
           }
-        });
+        }
+        await tx.commit();
       } finally {
         await sesion.close();
       }

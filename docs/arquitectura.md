@@ -111,7 +111,7 @@ Detalle por entidad y por campo: `matriz-propiedad.md` §3. Modelo del grafo: `d
 
 | Opción | A favor | En contra | Decisión |
 |---|---|---|---|
-| **PostgreSQL 16** | `CHECK`, índices únicos sobre expresiones (`lower(correo)`), `JSONB` para el payload del outbox, `FOR UPDATE SKIP LOCKED` para el reintento, `TIMESTAMPTZ` | — | **Elegida** |
+| **PostgreSQL 16** | `CHECK`, índices únicos sobre expresiones (`lower(correo)`), `JSONB` y bloqueos transaccionales para el outbox, `TIMESTAMPTZ` | — | **Elegida** |
 | MySQL 8 | También ofrece transacciones, `CHECK` y `SKIP LOCKED` | No aporta nada que falte en PostgreSQL, que ya era la base relacional del modelo desde la actividad anterior (KG v1.1) | Viable, no elegida |
 | SQLite | Sin servidor, muy simple | Un solo escritor a la vez; no es un servicio de red, así que no representa una base en la nube | Descartada por F y G |
 
@@ -199,23 +199,21 @@ Las demás operaciones escriben en una sola base dueña. La copia al grafo no cu
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
   A["Servicio"] -- "1 · cambio + evento<br/>en una transacción" --> B[("PostgreSQL<br/>evento PENDIENTE")]
-  A -- "2 · tras el commit" --> C["aplicarAhora()"]
-  C -- "3 · MERGE por id" --> D[("Neo4j")]
-  C -- "4a · éxito → APLICADO" --> B
-  C -. "4b · fallo → sigue PENDIENTE" .-> B
-  E["Reintento cada 3 s<br/>espera 2, 4, 8, 16 s"] -- "toma PENDIENTE en orden" --> B
-  E --> D
-  E -. "5.º fallo → FALLIDO" .-> B
-  F["npm run reconciliar"] -. "compara ids y repara" .-> D
+  A -- "2 · tras el commit" --> C["Consumidor único"]
+  E["Temporizador cada 3 s"] --> C
+  C -- "3 · primera fila por orden_cola" --> B
+  C -- "4 · aplica el evento" --> D[("Neo4j")]
+  C -- "5 · confirma estado y reintento" --> B
+  F["Reactivar tras corregir la causa"] -. "FALLIDO → PENDIENTE" .-> B
 ```
 
-- **Aplicación inmediata:** en el caso normal, el grafo se actualiza dentro de la misma petición y la API responde `sincronizacion: { grafo: "APLICADO" }`.
-- **Reintento:** si Neo4j no responde, el cambio ya está confirmado en PostgreSQL; la API responde `grafo: "PENDIENTE"` (nunca dice que el grafo está al día si no lo está) y un proceso del backend reintenta en orden de creación.
+- **Aplicación inmediata:** la petición puede avanzar la misma cola que usa el temporizador. La API responde `grafo: "APLICADO"` cuando PostgreSQL confirma el estado de todos los eventos de esa petición.
+- **Reintento:** el cambio de negocio sigue confirmado si Neo4j no responde. PostgreSQL conserva la próxima fecha de intento y la API informa `grafo: "PENDIENTE"`. Si se agotan los reintentos, la cola se pausa en la primera fila. Tras corregir el problema, el comando local permite reactivarla.
 - **Idempotencia:** cada evento es un `MERGE` por id; aplicarlo dos veces da el mismo grafo. `Progreso` se recalcula desde cero, nunca se incrementa.
 - **Reconciliación** (`npm run reconciliar`, matriz §6): compara ids entre PostgreSQL y Neo4j, reintenta FALLIDO, borra huérfanos de MongoDB y recalcula `Progreso`.
 - **Reconstrucción** (`npm run grafo:reconstruir`): último recurso; vacía el grafo y lo rehace desde PostgreSQL y MongoDB.
 
-**Estado de implementación:** hechos el catálogo de 11 eventos, el aplicador idempotente (`database/graph/eventos/`) y el procesador con reintento, probados con el dataset (el dataset aplicado como eventos da exactamente el grafo de la carga). Faltan el outbox en PostgreSQL (requiere el esquema, backend #12), la conexión del procesador en el arranque de la API y la reconciliación.
+**Estado de implementación:** catálogo, aplicador de los 11 eventos, outbox en PostgreSQL y procesador conectado al arranque. Faltan conectar los servicios de negocio como productores y completar la reconciliación general entre las bases.
 
 ## 7. Flujos integrados (diseño)
 
