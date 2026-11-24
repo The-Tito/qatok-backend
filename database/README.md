@@ -19,6 +19,12 @@ Los usuarios de muestra se cargan sin contraseña utilizable. Para habilitar su 
 
 Ejecuta `npm run test:integration -- tests/integration/relacional.test.ts` para comprobar la carga, las restricciones, el orden de eventos y las consultas. La prueba construye un esquema temporal y lo revierte al terminar.
 
+### Cola de sincronización
+
+Si las tablas ya existen, ejecuta `npm run db:relational:migrar` antes de arrancar la API. La migración añade `proximo_intento` y conserva el contenido de la cola. Un reinicio relacional nuevo ya incluye la columna.
+
+El primer evento sin aplicar puede estar esperando su próximo intento o haber agotado cinco intentos. En este último caso la cola permanece pausada. Tras corregir la causa, ejecuta `npm run db:sync:reactivar -- <id_evento>` para devolver ese evento a PENDIENTE. La API reanuda el procesamiento por orden. La reactivación solo admite la primera fila si está FALLIDO.
+
 ## MongoDB en desarrollo
 
 Ejecuta `npm run db:document:reset` para reemplazar las colecciones locales de borradores, revisiones y evidencias. El comando crea sus validadores e índices y carga las revisiones usando los mismos IDs que PostgreSQL. Se usa solo contra MongoDB local de desarrollo.

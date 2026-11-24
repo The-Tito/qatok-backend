@@ -9,5 +9,6 @@ export function leerDataset(): {
 };
 export function conectar(opciones?: { reinicioLocal?: boolean }): Client;
 export function reconstruir(client: Client, hash?: string): Promise<void>;
-export function prepararEsquemaDePrueba(client: Client): Promise<void>;
+export function prepararEsquemaDePrueba(client: Client): Promise<string>;
+export function eliminarEsquemaDePrueba(client: Client, esquema: string): Promise<void>;
 export function revertir(client: Client): Promise<void>;
