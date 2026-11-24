@@ -4,6 +4,7 @@
  */
 import { Router } from 'express';
 import type { Controladores } from '../contenedor.js';
+import { createAttemptRoutes } from './attempt.routes.js';
 import { createF1Routes } from './f1.routes.js';
 import { healthRoutes } from './health.routes.js';
 import { createSimulationAdminRoutes } from './simulation-admin.routes.js';
@@ -13,5 +14,6 @@ export function crearRutas(c: Controladores): Router {
   api.use(healthRoutes(c.health));
   api.use(createF1Routes(c));
   api.use('/admin/simulations', createSimulationAdminRoutes(c));
+  api.use('/attempts', createAttemptRoutes(c));
   return api;
 }

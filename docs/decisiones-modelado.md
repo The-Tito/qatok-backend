@@ -43,6 +43,8 @@
 | DEC-23 | — (surgida en F1) | Añadir `Simulacion` a las entidades de C-03. | ADOPTADA |
 | DEC-24 | — (proyecto final) | Arquitectura de tres bases según la matriz de propiedad v2: MongoDB adoptado, reparto por base dueña, sincronización por outbox, proyección del grafo, stack. KG v1.2. | ADOPTADA (D-15, D-20) / PRELIMINAR (D-16..D-19) / PROPUESTA (D-21) |
 | DEC-25 | P-03 (proyecto final) | `Progreso.nivel_actual` = promedio ponderado por `DESARROLLA.peso` de la puntuación del **último** intento COMPLETADO de cada simulación que desarrolla la habilidad, redondeado a 2 decimales. Lo calcula Neo4j (`database/graph/data/04-derivados.cypher`). | PROPUESTA (P-03) |
+| DEC-26 | F2 | El reenvío devuelve conflicto. La desactivación permite terminar los intentos activos con la revisión publicada. | ADOPTADA para el contrato F2 |
+| DEC-27 | D-21 / P-03 | La puntuación provisional se redondea a dos decimales con empate al centésimo par. | PROPUESTA (P-03) |
 
 ---
 
@@ -230,6 +232,17 @@ Todos los entregables se crean en `entregables/`. Los razonamientos de verificac
 - **Detalles:** `fecha_actualizacion` = la `fecha_fin` más reciente que entra en el cálculo (carga reproducible). `id_progreso` lo genera Neo4j (`randomUUID()`) al crear el nodo: `Progreso` solo existe en el grafo y su id no viaja a otra base. Una simulación en BORRADOR no está en el grafo y no cuenta.
 - **Resultado con el dataset (Ana):** Comunicación efectiva 75 (FORTALEZA, objetivo 75), Resolución de conflictos 92.5 (FORTALEZA, objetivo 70), Gestión del tiempo 40 (ÁREA DE MEJORA, respaldo nivel esperado 60).
 - **Estado:** **PROPUESTA (P-03)**, pendiente de aprobación del equipo. No se agrega al KG hasta que se adopte.
+
+### DEC-26 — Reenvío y desactivación durante F2
+
+- El contrato devuelve un conflicto y permite recuperar el intento con GET cuando se reenvía una respuesta que ya avanzó o cerró el intento. Responder y abandonar bloquean la misma fila. La comprobación del paso bajo ese bloqueo evita duplicar respuestas y eventos sin guardar una clave adicional.
+- La desactivación impide iniciar intentos. Los intentos activos conservan acceso a la revisión publicada. Inicio y desactivación bloquean la simulación, por lo que el estado observado corresponde al orden de las transacciones.
+- **Estado:** adoptada para el contrato F2. Conserva las reglas de creación y cierre RI-19, RI-22 y RI-23.
+
+### DEC-27 — Redondeo provisional de la puntuación en F2
+
+- Se implementa la propuesta D-21 como promedio de valoraciones expresadas en centésimos. Se redondea una sola vez a dos decimales. En un empate exacto se elige el centésimo par, criterio nominal del validador del dataset.
+- **Estado:** propuesta (P-03). El cálculo de progreso por habilidad sigue descrito en DEC-25.
 
 ---
 
