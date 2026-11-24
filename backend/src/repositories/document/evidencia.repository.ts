@@ -23,6 +23,9 @@ export function crearEvidenciaRepository(db: Db) {
     obtener(idEvidencia: string) {
       return evidencias.findOne({ _id: Uuid.parse(idEvidencia) });
     },
+    obtenerVarias(ids: string[]) {
+      return evidencias.find({ _id: { $in: ids } }).toArray();
+    },
     guardar(instantanea: InstantaneaEvidencia) {
       return evidencias.insertOne(instantanea);
     },

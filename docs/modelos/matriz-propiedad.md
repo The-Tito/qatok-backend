@@ -98,7 +98,8 @@ Cada `tipo` de paso tiene un `contexto` distinto (CORREO: remitente, asunto y cu
 | **Responder un paso** (F2, C) | Lee el contenido de Mongo y valida RI-10 → **solo PG**, en una transacción: `respuesta` (RI-16, RI-22) + cerrar el intento si la opción es terminal (RI-23, puntuación calculada) + eventos `RESPUESTA_REGISTRADA` (y `INTENTO_FINALIZADO`) | Revierte | `201` con consecuencias y retroalimentación (leídas del contenido) + `sincronizacion` |
 | Abandonar intento (F2, C) | PG + evento `INTENTO_FINALIZADO` | Revierte | `200` |
 | Generar evidencia (F3a, A) | 1) Mongo `evidencias` → 2) PG `evidencia` + evento `EVIDENCIA_GENERADA` (**2 bases**) | Si falla PG: se borra el documento (compensación). Si eso también falla, la reconciliación lo limpia | `201` + `sincronizacion` |
-| Cambiar visibilidad o eliminar evidencia (F3a, A) | PG (+ Mongo delete si se elimina) | Igual que eliminar BORRADOR | `200` / `204` |
+| Actualizar evidencia (F3a, A) | PG (título o visibilidad) + `EVIDENCIA_GENERADA` si cambia el título | Revierte | `200` |
+| Eliminar evidencia (F3a, A) | PG + `EVIDENCIA_ELIMINADA` → Mongo elimina la instantánea | Si falla Mongo, la reconciliación limpia la instantánea huérfana | `200` |
 | Compartir y revocar (F3b, B) | Solo PG | Revierte | `201` / `204` |
 | Ver evidencia compartida (F3b, B) | Lectura: PG valida token, estado y vencimiento → Mongo da el contenido | Mongo caído → `503` con el formato de error | `200` / `404` / `410` |
 

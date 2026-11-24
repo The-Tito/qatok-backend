@@ -19,8 +19,15 @@ function invert<K extends string, V extends string>(map: Record<K, V>): Record<V
 }
 const publicImpacts = invert(impacts);
 const publicConsequences = invert(consequences);
-const publicFeedback = invert(feedback);
+export const publicFeedback = invert(feedback);
 const publicSeverities = invert(severities);
+export const publicStepTypes = {
+  CORREO: 'EMAIL',
+  REUNION: 'MEETING',
+  CONVERSACION: 'CONVERSATION',
+  TAREA: 'TASK',
+  INCIDENTE: 'INCIDENT',
+} as const satisfies Record<PasoContenido['tipo'], SimulationStep['type']>;
 
 export function toStoredStep(step: SimulationStep): PasoContenido {
   const base = {
@@ -124,7 +131,7 @@ export function toPublicStep(step: PasoContenido): SimulationStep {
     case 'CORREO':
       return {
         ...base,
-        type: 'EMAIL',
+        type: publicStepTypes.CORREO,
         context: {
           sender: step.contexto.remitente,
           subject: step.contexto.asunto,
@@ -134,13 +141,13 @@ export function toPublicStep(step: PasoContenido): SimulationStep {
     case 'REUNION':
       return {
         ...base,
-        type: 'MEETING',
+        type: publicStepTypes.REUNION,
         context: { participants: step.contexto.participantes, agenda: step.contexto.agenda },
       };
     case 'CONVERSACION':
       return {
         ...base,
-        type: 'CONVERSATION',
+        type: publicStepTypes.CONVERSACION,
         context: {
           interlocutor: step.contexto.interlocutor,
           lines: step.contexto.lineas.map(({ quien, texto }) => ({ speaker: quien, text: texto })),
@@ -149,7 +156,7 @@ export function toPublicStep(step: PasoContenido): SimulationStep {
     case 'TAREA':
       return {
         ...base,
-        type: 'TASK',
+        type: publicStepTypes.TAREA,
         context: {
           deliverables: step.contexto.entregables,
           deadline_hours: step.contexto.plazo_horas,
@@ -158,7 +165,7 @@ export function toPublicStep(step: PasoContenido): SimulationStep {
     case 'INCIDENTE':
       return {
         ...base,
-        type: 'INCIDENT',
+        type: publicStepTypes.INCIDENTE,
         context: {
           timeline: step.contexto.cronologia.map(({ momento, hecho }) => ({
             time: momento,

@@ -1,6 +1,7 @@
 // =====================================================================
 // QATO'K · evento EVIDENCIA_GENERADA (F3a) · Parámetros: $id_evidencia,
 // $id_usuario, $id_intento, $titulo
+// El mismo evento actualiza el título de una evidencia ya proyectada.
 // El MATCH exige que el intento sea del usuario (RI-14). DEMUESTRA se deriva
 // de DESARROLLA de la simulación del intento (RI-20), como data/04-derivados.
 // =====================================================================
