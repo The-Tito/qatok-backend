@@ -114,6 +114,7 @@ Si una base no responde, el estado es `DEGRADADO`, la respuesta es `503` y esa b
 | `npm run db:down` | Detiene las bases (los datos se conservan) |
 | `npm run db:reset` | Detiene las bases **y borra sus datos** |
 | `npm run db:relational:reset` | Reconstruye las tablas PostgreSQL de desarrollo desde el dataset. Reemplaza los datos de esas tablas |
+| `npm run db:document:reset` | Reconstruye las colecciones de MongoDB de desarrollo desde el dataset. Reemplaza los datos de esas colecciones |
 | `npm run db:ps` / `npm run db:logs` | Estado y registros de los contenedores |
 | `npm run dev:api` | API con recarga automática |
 | `npm run verificar` | Lint, formato, tipos, pruebas unitarias, dataset y modelo: lo mismo que el CI, menos la integración |
