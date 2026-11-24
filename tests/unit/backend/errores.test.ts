@@ -28,17 +28,17 @@ describe('middleware de errores', () => {
     const r = await request(app).get('/api/negocio');
     expect(r.status).toBe(409);
     expect(ErrorRespuesta.parse(r.body).error).toEqual({
-      codigo: 'INTENTO_NO_EN_CURSO',
-      mensaje: 'El intento ya terminó',
-      detalles: { estado: 'COMPLETADO' },
+      code: 'INTENTO_NO_EN_CURSO',
+      message: 'El intento ya terminó',
+      details: { estado: 'COMPLETADO' },
     });
   });
 
   it('ZodError → 400 VALIDACION con los campos', async () => {
     const r = await request(app).post('/api/validar').send({ nombre: '' });
     expect(r.status).toBe(400);
-    expect(r.body.error.codigo).toBe('VALIDACION');
-    expect(r.body.error.detalles.campos[0].campo).toBe('nombre');
+    expect(r.body.error.code).toBe('VALIDATION_ERROR');
+    expect(r.body.error.details.fields[0].field).toBe('nombre');
   });
 
   it('JSON mal formado → 400 VALIDACION', async () => {
@@ -47,28 +47,36 @@ describe('middleware de errores', () => {
       .set('Content-Type', 'application/json')
       .send('{malo');
     expect(r.status).toBe(400);
-    expect(r.body.error.codigo).toBe('VALIDACION');
+    expect(r.body.error.code).toBe('VALIDATION_ERROR');
   });
 
   it('error inesperado → 500 sin filtrar el detalle', async () => {
     const r = await request(app).get('/api/inesperado');
     expect(r.status).toBe(500);
-    expect(r.body.error.codigo).toBe('ERROR_INTERNO');
+    expect(r.body.error.code).toBe('INTERNAL_ERROR');
     expect(JSON.stringify(r.body)).not.toContain('detalle interno');
+  });
+
+  it('rejects a body larger than the configured limit', async () => {
+    const response = await request(app)
+      .post('/api/validar')
+      .send({ nombre: 'x'.repeat(1_048_576) });
+    expect(response.status).toBe(413);
+    expect(response.body.error.code).toBe('PAYLOAD_TOO_LARGE');
   });
 
   it('fallo de conexión de un driver → 503 BASE_NO_DISPONIBLE con la base', async () => {
     const r = await request(app).get('/api/neo4j-caido');
     expect(r.status).toBe(503);
     expect(r.body.error).toMatchObject({
-      codigo: 'BASE_NO_DISPONIBLE',
-      detalles: { base: 'grafo' },
+      code: 'DATABASE_UNAVAILABLE',
+      details: { database: 'graph' },
     });
   });
 
   it('ruta inexistente → 404 NO_ENCONTRADO', async () => {
     const r = await request(app).get('/api/no-existe');
     expect(r.status).toBe(404);
-    expect(r.body.error.codigo).toBe('NO_ENCONTRADO');
+    expect(r.body.error.code).toBe('NOT_FOUND');
   });
 });

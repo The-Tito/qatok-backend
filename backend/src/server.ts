@@ -13,7 +13,7 @@ const entorno = cargarEntorno();
 const logger = crearLogger(entorno);
 const conexiones = crearConexiones(entorno);
 const sincronizacion = crearSincronizacion(conexiones, logger);
-const controladores = crearControladores(conexiones, entorno, logger);
+const controladores = crearControladores(conexiones, entorno, logger, sincronizacion);
 const app = crearApp({ rutas: crearRutas(controladores), logger, corsOrigen: entorno.CORS_ORIGEN });
 
 const servidor = app.listen(entorno.API_PORT, async () => {

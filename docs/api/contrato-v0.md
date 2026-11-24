@@ -1,6 +1,6 @@
 # Contrato de la API v0 — QATO'K
 
-- **Paso del plan:** 0.3. **Estado:** PROPUESTA, pendiente de aprobación de B y C (puerta 0). Forma parte de E6 ("documentación del contrato de API").
+- **Entregable E6 · contrato 0.2.0.** Salud y las primeras rutas de F1 tienen implementación. Las demás secciones documentan flujos previstos y sus rutas se revisarán al implementarlas.
 - **Se apoya en:** `context/convenciones.md` §5 (prefijo `/api`, `snake_case`, formato de error, códigos HTTP) y `docs/modelos/matriz-propiedad.md` §4 (en qué bases escribe cada operación).
 - **Del contrato al código:** en el paso 0.7 estas formas se escriben como esquemas zod en `shared/`, y de ahí se genera el OpenAPI (`/api/docs`). Si el código y este documento difieren, se corrige el que esté mal mediante un PR.
 - **Para que la interfaz avance sin backend:** C puede simular cualquier endpoint con los ejemplos de este documento.
@@ -10,11 +10,15 @@
 | Nivel | Quién |
 |---|---|
 | **Público** | Sin token |
-| **Usuario** | Cualquier token válido (`ESTUDIANTE` o `ADMIN`) |
-| **Dueño** | El recurso pertenece al `id_usuario` del token. Si no es suyo → `404` (no se revela que existe) |
-| **Admin** | Token con `rol = ADMIN` |
+| **Usuario** | Token válido y cuenta activa en PostgreSQL |
+| **Dueño** | El recurso pertenece al usuario identificado por el token. Si no es suyo → `404` |
+| **Admin** | Cuenta activa con rol ADMIN en PostgreSQL |
 
-## 2. Objetos que se repiten
+Los errores de la API usan `{ error: { code, message, details? } }`. Los consumidores deben usar `code` para decidir cómo tratar el error. Los errores de validación incluyen `details.fields` cuando hay campos concretos que corregir.
+
+## 2. Objetos de los flujos previstos
+
+Los objetos siguientes conservan la notación del diseño original. Los objetos vigentes para cuentas, habilidades y catálogo se describen en F1 y en `shared/src/f1.ts`.
 
 ```jsonc
 // Usuario
@@ -64,31 +68,43 @@ Columnas: **Bases** = PG / Mongo / Neo4j que toca (L = lectura, E = escritura, *
 
 `estado` vale `"DEGRADADO"` si alguna base tiene `ok: false`. En ese caso, la base que falla incluye `"error": "SIN_CONEXION" | "TIEMPO_AGOTADO"`; el detalle técnico solo va al log. Este endpoint es la base de la **prueba de conectividad**. Implementado en el paso 0.7: es la plantilla de capas que copian los demás endpoints.
 
-### F1 Cuenta — dueño B (RF-01, RF-09)
+### F1 Cuentas y sesiones (RF-01, RF-09)
+
+Las rutas, los campos HTTP y los códigos de error usan inglés. El modelo de PostgreSQL y los eventos conservan sus nombres de dominio. Los esquemas de la API y el frontend están en [shared/src/f1.ts](../../shared/src/f1.ts).
 
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| `POST /api/auth/registro` | Público | PG E + *ev* | `{ nombre (1–100), correo (email, ≤150), contrasena (8–72) }` | `201 { usuario, token, sincronizacion }` | `400 VALIDACION`, `409 CORREO_DUPLICADO` |
-| `POST /api/auth/login` | Público | PG L | `{ correo, contrasena }` | `200 { usuario, token }` | `401 CREDENCIALES_INVALIDAS`, `403 CUENTA_INACTIVA` |
-| `GET /api/me` | Usuario | PG L | — | `200 Usuario` | `401` |
-| `PATCH /api/me` | Usuario | PG E | `{ nombre? }` | `200 Usuario` | `400` |
-| `DELETE /api/me` | Usuario | PG E + *ev* → Mongo E | — | `200 { eliminado: true, sincronizacion }` | `401` |
+| `POST /api/auth/register` | Público | PG E + *ev* | `{ name, email, password }` | `201 { user, token, synchronization }` | `400 VALIDATION_ERROR`, `409 EMAIL_ALREADY_REGISTERED` |
+| `POST /api/auth/login` | Público | PG L | `{ email, password }` | `200 { user, token }` | `400 VALIDATION_ERROR`, `401 INVALID_CREDENTIALS`, `403 ACCOUNT_INACTIVE` |
+| `GET /api/me` | Usuario | PG L | — | `200 Account` | `401 UNAUTHENTICATED` |
+| `PATCH /api/me` | Usuario | PG E | `{ name? }` | `200 Account` | `400 VALIDATION_ERROR`, `401 UNAUTHENTICATED` |
+| `DELETE /api/me` | Usuario | PG E + *ev* → Mongo E | — | `200 { deleted: true, synchronization }` | `401 UNAUTHENTICATED` |
 
-### F1 Habilidades — dueño B
+Una cuenta contiene `id`, `name`, `email`, `role` (`STUDENT` o `ADMIN`), `status` (`ACTIVE`, `INACTIVE`, `SUSPENDED`) y `registered_at` en UTC. El registro crea una cuenta de estudiante. El nombre admite 1–100 caracteres y el correo normalizado hasta 150. La contraseña requiere al menos ocho caracteres y admite hasta 72 bytes en UTF-8. Las respuestas excluyen contraseñas y hashes.
 
-| Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
-|---|---|---|---|---|---|
-| `GET /api/habilidades` | Usuario | PG L | — | `200 { datos: Habilidad[], total }` | — |
-| `POST /api/admin/habilidades` | Admin | PG E + *ev* | `{ nombre, descripcion, categoria, nivel_objetivo? }` | `201 { habilidad, sincronizacion }` | `400`, `409 HABILIDAD_DUPLICADA` |
-| `PUT /api/admin/habilidades/:id_habilidad` | Admin | PG E + *ev* | igual que `POST` | `200 { habilidad, sincronizacion }` | `404`, `409 HABILIDAD_DUPLICADA` |
-| `DELETE /api/admin/habilidades/:id_habilidad` | Admin | PG E + *ev* | — | `200 { eliminado: true, sincronizacion }` | `404`, `409 HABILIDAD_EN_USO` |
+Las rutas protegidas usan `Authorization: Bearer <token>`. El JWT caduca a las ocho horas y lleva el ID de cuenta en `sub`. La API verifica firma, vencimiento, emisor y audiencia, y consulta el estado y rol actuales en PostgreSQL. Una baja o desactivación impide el acceso con tokens emitidos anteriormente. Al eliminar una cuenta, PostgreSQL revoca el acceso a sus evidencias. Si MongoDB falla después del commit, la reconciliación podrá retirar las instantáneas restantes.
 
-### F1 Catálogo — dueño B (RF-02)
+`synchronization` tiene la forma `{ graph: "APPLIED" | "PENDING", event_ids: string[] }`. PENDING indica que PostgreSQL confirmó el cambio y el grafo todavía no lo confirma.
+
+### F1 Habilidades
 
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| `GET /api/simulaciones` | Usuario | PG L | Query: `texto?`, `id_habilidad?`, `dificultad?`, `limite?`, `desplazamiento?` | `200 { datos: SimulacionResumen[], total }`, solo PUBLICADA | `400` |
-| `GET /api/simulaciones/:id_simulacion` | Usuario | PG L | — | `200 SimulacionResumen` | `404` si no existe o no está PUBLICADA |
+| `GET /api/skills` | Usuario | PG L | — | `200 { items: Skill[], total }` | `401 UNAUTHENTICATED` |
+| `POST /api/admin/skills` | Admin | PG E + *ev* | `{ name, description, category, target_level? }` | `201 { skill, synchronization }` | `400`, `403 FORBIDDEN`, `409 SKILL_ALREADY_EXISTS` |
+| `PUT /api/admin/skills/:skillId` | Admin | PG E + *ev* | Igual que POST | `200 { skill, synchronization }` | `404 NOT_FOUND`, `409 SKILL_ALREADY_EXISTS` |
+| `DELETE /api/admin/skills/:skillId` | Admin | PG E + *ev* | — | `200 { deleted: true, synchronization }` | `404 NOT_FOUND`, `409 SKILL_IN_USE` |
+
+La respuesta incluye `id` y `target_level`, que puede ser un entero de 0 a 100 o nulo.
+
+### F1 Catálogo de simulaciones (RF-02)
+
+| Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
+|---|---|---|---|---|---|
+| `GET /api/simulations` | Usuario | PG L | `search?`, `skill_id?`, `difficulty?`, `limit?`, `offset?` | `200 { items: SimulationSummary[], total }` | `400 VALIDATION_ERROR` |
+| `GET /api/simulations/:simulationId` | Usuario | PG L | — | `200 SimulationSummary` | `404 NOT_FOUND` si no existe o no está publicada |
+
+El resumen incluye `id`, `title`, `description`, `difficulty` (`BASIC`, `INTERMEDIATE`, `ADVANCED`), `estimated_duration` (entero o nulo), `status: "PUBLISHED"` y `skills: [{ id, name, weight, expected_level }]`. La búsqueda compara texto literal en el título o la descripción sin distinguir mayúsculas. Los filtros se combinan. Los resultados se ordenan por título e ID, con `limit=20` (máximo 100), `offset=0` y el total antes de paginar.
 
 ### F1 Administración de simulaciones — dueño B
 
@@ -181,9 +197,8 @@ Respuesta de `GET /api/perfil`:
 | Archivo en `backend/src/routes/` | Rutas | Dueño |
 |---|---|---|
 | `health.routes.ts` | `/api/health` | A |
-| `auth.routes.ts` | `/api/auth/*`, `/api/me` | B |
-| `habilidades.routes.ts` | `/api/habilidades`, `/api/admin/habilidades/*` | B |
-| `simulaciones.routes.ts` | `/api/simulaciones/*`, `/api/admin/simulaciones/*` | B |
+| `f1.routes.ts` | `/api/auth/*`, `/api/me`, `/api/skills`, `/api/admin/skills/*`, `/api/simulations/*` | Antonio |
+| Próximo paso | Administración y publicación de simulaciones | Antonio |
 | `intentos.routes.ts` | `/api/intentos/*` | C |
 | `perfil.routes.ts` | `/api/perfil/*` | A |
 | `evidencias.routes.ts` | `/api/evidencias` (GET lista y detalle, POST, PATCH, DELETE) | A |
