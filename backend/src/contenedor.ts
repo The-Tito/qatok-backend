@@ -3,6 +3,7 @@
  * y se conectan entre sí. Cada dueño agrega las líneas de su flujo en su bloque.
  */
 import type { Entorno } from './config/entorno.js';
+import { createAttemptController } from './controllers/attempt.controller.js';
 import {
   createAccountController,
   createCatalogController,
@@ -21,11 +22,13 @@ import { crearHealthRepositoryGrafo } from './repositories/graph/health.reposito
 import { crearAplicadorGrafo } from './repositories/graph/sincronizacion.repository.js';
 import { crearHealthRepositoryRelacional } from './repositories/relational/health.repository.js';
 import { createAccountRepository } from './repositories/relational/account.repository.js';
+import { createAttemptRepository } from './repositories/relational/attempt.repository.js';
 import { createCatalogRepository } from './repositories/relational/catalog.repository.js';
 import { crearOutboxRepository } from './repositories/relational/outbox.repository.js';
 import { createSkillRepository } from './repositories/relational/skill.repository.js';
 import { createSimulationRepository } from './repositories/relational/simulation.repository.js';
 import { createAccountService } from './services/account.service.js';
+import { createAttemptService } from './services/attempt.service.js';
 import { crearHealthService } from './services/health.service.js';
 import { createSkillService } from './services/skill.service.js';
 import { createSimulationService } from './services/simulation.service.js';
@@ -68,17 +71,26 @@ export function crearControladores(
     createSkillService(pool, createSkillRepository(pool), synchronization),
   );
   const catalog = createCatalogController(createCatalogRepository(pool));
+  const content = crearContenidoRepository(conexiones.mongo.db);
   const simulations = createSimulationController(
     createSimulationService({
       pool,
       simulations: createSimulationRepository(pool),
-      content: crearContenidoRepository(conexiones.mongo.db),
+      content,
       synchronization,
       logger,
     }),
   );
+  const attempts = createAttemptController(
+    createAttemptService({
+      pool,
+      attempts: createAttemptRepository(pool),
+      content,
+      synchronization,
+    }),
+  );
   const requireSession = createSessionMiddleware(tokens, accounts);
-  return { health, account, skills, catalog, simulations, requireSession };
+  return { health, account, skills, catalog, simulations, attempts, requireSession };
 }
 
 export type Controladores = ReturnType<typeof crearControladores>;

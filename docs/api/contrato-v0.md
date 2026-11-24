@@ -1,6 +1,6 @@
 # Contrato de la API v0 — QATO'K
 
-- **Entregable E6 · contrato 0.3.0.** Salud y F1, incluida la administración de escenarios, tienen implementación. Las demás secciones documentan flujos previstos.
+- **Entregable E6 · contrato 0.4.0.** Salud, F1 y F2 tienen implementación. Las demás secciones documentan flujos previstos.
 - **Se apoya en:** `context/convenciones.md` §5 (prefijo `/api`, `snake_case`, formato de error, códigos HTTP) y `docs/modelos/matriz-propiedad.md` §4 (en qué bases escribe cada operación).
 - **Del contrato al código:** en el paso 0.7 estas formas se escriben como esquemas zod en `shared/`, y de ahí se genera el OpenAPI (`/api/docs`). Si el código y este documento difieren, se corrige el que esté mal mediante un PR.
 - **Para que la interfaz avance sin backend:** C puede simular cualquier endpoint con los ejemplos de este documento.
@@ -18,7 +18,7 @@ Los errores de la API usan `{ error: { code, message, details? } }`. Los consumi
 
 ## 2. Objetos de los flujos previstos
 
-Los objetos siguientes conservan la notación del diseño original. Los objetos vigentes para cuentas, habilidades y catálogo se describen en F1 y en `shared/src/f1.ts`.
+Los objetos siguientes conservan la notación del diseño original. Para los objetos vigentes, consulta F1 y F2 y sus esquemas en `shared/src/`.
 
 ```jsonc
 // Usuario
@@ -33,15 +33,6 @@ Los objetos siguientes conservan la notación del diseño original. Los objetos 
 { "id_simulacion": "uuid", "titulo": "Cliente molesto por un retraso", "descripcion": "…",
   "dificultad": "INTERMEDIA", "duracion_estimada": 10, "estado": "PUBLICADA",
   "habilidades": [ { "id_habilidad": "uuid", "nombre": "…", "peso": 0.6, "nivel_esperado": 70 } ] }
-
-// PasoVista: lo que ve quien juega. NO incluye valoración, consecuencias ni retroalimentación
-{ "id_paso": "uuid", "orden": 1, "tipo": "CORREO", "titulo": "…", "descripcion": "…",
-  "contexto": { "remitente": "…", "asunto": "…", "cuerpo": "…" },
-  "opciones": [ { "id_opcion": "uuid", "descripcion": "…" } ] }
-
-// Intento
-{ "id_intento": "uuid", "id_simulacion": "uuid", "estado": "EN_CURSO",
-  "fecha_inicio": "…", "fecha_fin": null, "puntuacion": null }
 
 // Sincronizacion (solo en operaciones que generan eventos)
 { "grafo": "APLICADO", "eventos": ["uuid"] }
@@ -125,31 +116,25 @@ Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FOR
 - **Contenido.** Los pasos llevan `id`, `order`, `title`, `description`, `type`, `context` y `options`. Los tipos son EMAIL, MEETING, CONVERSATION, TASK e INCIDENT. El contexto tiene campos propios de cada tipo. Cada opción incluye `id`, `description`, `score`, `next_step_id`, `consequences` y `feedback`. El cliente asigna UUID v4 a pasos y opciones. Un `next_step_id: null` termina la ruta. El cuerpo HTTP tiene el límite global de 1 MiB. Los [esquemas compartidos](../../shared/src/simulation-admin.ts) detallan rangos y campos.
 - **Edición y publicación.** El primer guardado devuelve versión 1. Para reemplazar, enviar la versión que se leyó. Publicar usa una copia inmutable de esa versión. La API fija la referencia y el estado en PostgreSQL junto con el evento, y el catálogo puede mostrar la simulación aun si el grafo queda PENDING. Al desactivar, el catálogo la oculta y el administrador aún puede consultar la revisión publicada. Una baja de borrador puede dejar limpieza documental pendiente si MongoDB falla después del commit.
 
-### F2 Jugar una simulación — dueño C (RF-03, RF-04, RF-05)
+### F2 Jugar una simulación (RF-03, RF-04, RF-05)
 
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
-| `POST /api/intentos` | Usuario | PG L, Mongo L → PG E + *ev* | `{ id_simulacion }` | `201 { intento, paso_actual: PasoVista, sincronizacion }` | `404`, `409 SIMULACION_NO_PUBLICADA` (RI-19), `409 INTENTO_EN_CURSO_EXISTENTE` (`detalles.id_intento`, para retomarlo) |
-| `GET /api/intentos` | Usuario | PG L | Query: `estado?`, paginación | `200 { datos: Intento[], total }`, solo los propios | — |
-| `GET /api/intentos/:id_intento` | Dueño | PG L, Mongo L | — | `200 { intento, paso_actual: PasoVista \| null, respuestas: [{ secuencia, id_paso, id_opcion, fecha_respuesta }] }` | `404` |
-| `POST /api/intentos/:id_intento/respuestas` | Dueño | Mongo L → PG E + *ev* | `{ id_paso, id_opcion }` | `201` (abajo) | `404`, `409 INTENTO_NO_EN_CURSO` (RI-22), `409 PASO_NO_ACTUAL`, `400 OPCION_NO_PERTENECE_AL_PASO` (RI-10), `503 BASE_NO_DISPONIBLE` (sin Mongo no se puede validar) |
-| `POST /api/intentos/:id_intento/abandonar` | Dueño | PG E + *ev* | — | `200 { intento, sincronizacion }` | `404`, `409 INTENTO_NO_EN_CURSO` |
+| `POST /api/attempts` | Usuario | PG L, Mongo L → PG E + *ev* | `{ simulation_id }` | `201 { attempt, current_step, synchronization }` | `404 NOT_FOUND`, `409 SIMULATION_NOT_PUBLISHED` (RI-19), `409 ACTIVE_ATTEMPT_EXISTS` con `details.attempt_id` |
+| `GET /api/attempts` | Usuario | PG L | `status?`, `limit?` (1–100, por defecto 20), `offset?` (por defecto 0) | `200 { items: Attempt[], total }`, solo los propios, por inicio descendente e ID | — |
+| `GET /api/attempts/:attemptId` | Dueño | PG L, Mongo L si sigue activo | — | `200 { attempt, current_step: PlayerStep \| null, responses: AttemptResponse[] }` | `404 NOT_FOUND` |
+| `POST /api/attempts/:attemptId/responses` | Dueño | Mongo L → PG E + *ev* | `{ step_id, option_id }` | `201 { attempt, response, consequences, feedback, next_step, synchronization }` | `404 NOT_FOUND`, `409 ATTEMPT_NOT_IN_PROGRESS` (RI-22), `409 STEP_NOT_CURRENT` con `details.step_id`, `400 OPTION_NOT_IN_STEP` (RI-10) |
+| `POST /api/attempts/:attemptId/abandon` | Dueño | PG E + *ev* | — | `200 { attempt, synchronization }` | `404 NOT_FOUND`, `409 ATTEMPT_NOT_IN_PROGRESS` |
 
-Respuesta de `POST …/respuestas`:
-
-```json
-{
-  "respuesta": { "id_respuesta": "uuid", "secuencia": 2, "fecha_respuesta": "…" },
-  "consecuencias": [ { "descripcion": "El cliente acepta la nueva fecha", "impacto": "POSITIVO", "tipo": "RELACIONAL" } ],
-  "retroalimentacion": { "tipo": "ACIERTO", "comentario": "…", "recomendacion": "…" },
-  "siguiente_paso": null,
-  "intento": { "id_intento": "uuid", "estado": "COMPLETADO", "fecha_fin": "…", "puntuacion": 78.5 },
-  "sincronizacion": { "grafo": "APLICADO", "eventos": ["uuid", "uuid"] }
-}
-```
-
-- **Paso actual:** el de `orden = 1` si no hay respuestas; después, el `id_paso_siguiente` de la última opción elegida. Una opción sin siguiente es **terminal**: completa el intento (RI-23).
-- **Puntuación** (*propuesta* mientras P-03 siga abierta): el promedio de la `valoracion` de las opciones elegidas, entre 0 y 100.
+- `Attempt`: `{ id, simulation_id, status, started_at, finished_at, score }`. Los estados son `IN_PROGRESS`, `COMPLETED` y `ABANDONED`. Solo un intento completado tiene puntuación. Las fechas son UTC y `finished_at` es nulo durante el intento.
+- `AttemptResponse`: `{ id, step_id, option_id, sequence, answered_at }`. La secuencia empieza en 1. En el detalle, las respuestas se ordenan por secuencia.
+- `PlayerStep`: `{ id, order, type, title, description, context, options }`. Usa los tipos y campos de contexto de F1 administración. Cada opción contiene únicamente `{ id, description }`. Tras elegir, `consequences` y `feedback` tienen la forma de la opción en F1 administración.
+- El paso inicial tiene `order = 1`. A partir de ahí, manda el destino de la última opción. Una opción sin destino completa el intento y devuelve `next_step: null` (RI-23). La respuesta, el cierre y los eventos se confirman en una sola transacción.
+- Si se reenvía una respuesta que ya avanzó el intento, la API devuelve `409 STEP_NOT_CURRENT`. Si ya lo cerró, devuelve `409 ATTEMPT_NOT_IN_PROGRESS`. En ambos casos, el cliente puede recuperar el estado con `GET`.
+- Desactivar una simulación impide iniciar intentos nuevos. Los intentos activos pueden continuar con la revisión publicada que PostgreSQL conserva.
+- Si MongoDB no está disponible, las operaciones que necesitan el contenido devuelven `503 DATABASE_UNAVAILABLE`. Si falta la revisión o no se puede resolver el recorrido en ella, devuelven `503 PUBLISHED_CONTENT_UNAVAILABLE`. No se registra ninguna respuesta en esos casos.
+- Si Neo4j no confirma los eventos después del commit, `synchronization.graph` es `PENDING` y el cambio sigue guardado en PostgreSQL.
+- **Puntuación provisional (D-21, P-03):** promedio de las valoraciones elegidas, en una escala de 0 a 100, redondeado a dos decimales. En un empate exacto se toma el centésimo par.
 
 ### F3a Perfil y evidencias — dueño A (RF-06, RF-07, RF-08)
 
@@ -205,7 +190,7 @@ Respuesta de `GET /api/perfil`:
 | `health.routes.ts` | `/api/health` | A |
 | `f1.routes.ts` | `/api/auth/*`, `/api/me`, `/api/skills`, `/api/admin/skills/*`, `/api/simulations/*` | Antonio |
 | `simulation-admin.routes.ts` | `/api/admin/simulations/*` | Antonio |
-| `intentos.routes.ts` | `/api/intentos/*` | C |
+| `attempt.routes.ts` | `/api/attempts`, `/api/attempts/*` | Antonio |
 | `perfil.routes.ts` | `/api/perfil/*` | A |
 | `evidencias.routes.ts` | `/api/evidencias` (GET lista y detalle, POST, PATCH, DELETE) | A |
 | `comparticiones.routes.ts` | `/api/evidencias/:id/comparticiones`, `/api/comparticiones/*`, `/api/publico/*` | B |
@@ -218,4 +203,4 @@ Respuesta de `GET /api/perfil`:
 | Flujo integrado (guía §8.1) | `GET /api/perfil` |
 | Escritura en varias bases con fallo parcial (guía §9) | `POST /api/admin/simulations/:simulationId/publish`, `DELETE /api/admin/simulations/:simulationId`, `DELETE /api/me`, evidencias previstas |
 | Consistencia (guía §9) | Todo lo que devuelve `sincronizacion` + `GET /api/perfil` (`sincronizacion_pendiente`) |
-| RF-01 a RF-09 | Todos cubiertos. RF-10 (móvil, sesiones cortas) se cubre en la interfaz: retomar un intento con `409 INTENTO_EN_CURSO_EXISTENTE` + `GET /api/intentos/:id` |
+| RF-01 a RF-09 | Todos cubiertos. RF-10 (móvil, sesiones cortas) se cubre en la interfaz: retomar un intento con `409 ACTIVE_ATTEMPT_EXISTS` + `GET /api/attempts/:attemptId` |
