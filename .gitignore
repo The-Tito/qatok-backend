@@ -4,6 +4,12 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Exportaciones locales de la actividad anterior
+/entregables/docx/
+/presentacion/*.pdf
+/presentacion/*.docx
+/presentacion/*.pptx
+
 # Configuración local y credenciales (solo se versiona .env.example)
 .env
 .env.*
