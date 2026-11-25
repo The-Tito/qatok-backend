@@ -15,7 +15,7 @@ Qué datos van en cada base: `docs/modelos/matriz-propiedad.md`. Nombres y tipos
 
 Después de `npm run db:up`, ejecuta `npm run db:relational:reset` para reconstruir las tablas de QATO’K en el esquema `public` y cargarlas desde el dataset. **El comando reemplaza los datos relacionales locales de esas tablas.** Todo el cambio se confirma en una transacción y el comando solo admite PostgreSQL local fuera de producción.
 
-Los usuarios de muestra se cargan sin contraseña utilizable. Para habilitar su acceso cuando exista el flujo de autenticación, configura en local `QATOK_SEED_PASSWORD_HASH` con un hash bcrypt de costo 10. La carga queda reservada a desarrollo y pruebas. Las simulaciones publicadas ya tienen IDs de revisión fijos. El cargador documental de #19 deberá usar esos mismos IDs para sus copias publicadas.
+Para habilitar el acceso a las cuentas de muestra, pasa al cargador `QATOK_SEED_PASSWORD_HASH` con un hash bcrypt de costo 10, como indica el [inicio rápido](../README.md#inicio-rápido). La carga predeterminada deja esas cuentas sin contraseña utilizable. PostgreSQL y MongoDB usan los mismos IDs de revisión para las simulaciones publicadas.
 
 Ejecuta `npm run test:integration -- tests/integration/relacional.test.ts` para comprobar la carga, las restricciones, el orden de eventos y las consultas. La prueba construye un esquema temporal y lo revierte al terminar.
 
