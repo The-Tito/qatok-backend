@@ -79,13 +79,25 @@ git clone git@github.com:The-Tito/qatok-backend.git
 cd qatok-backend
 git checkout develop
 
-npm install
-npm run setup:env        # crea .env con contraseñas y JWT_SECRET aleatorios
-npm run db:up            # levanta las 3 bases y espera a que estén sanas
-npm run dev:api          # API en http://localhost:4000/api
+npm ci
+npm run setup:env
+npm run db:up
 ```
 
-Comprueba que la API ve las tres bases:
+En una instalación local nueva, crea los esquemas y carga los datos de demostración antes de arrancar la API. Los comandos de carga reemplazan datos, así que usa volúmenes de desarrollo vacíos para este paso. El hash habilita el inicio de sesión de las cuentas de prueba con la contraseña del dataset.
+
+```bash
+demo_hash=$(node -p \
+  'require("bcrypt").hashSync(require("./database/seed/dataset.json")._meta.contrasena_demo, 10)')
+QATOK_SEED_PASSWORD_HASH="$demo_hash" npm run db:relational:reset
+npm run db:document:reset
+npm run db:graph:reset
+npm run dev:api
+```
+
+Para retomar un entorno ya inicializado, ejecuta `npm run db:up` y `npm run dev:api`. Si necesitas aplicar la [migración de reintentos](database/README.md#cola-de-sincronización) de PostgreSQL, ejecútala antes de arrancar la API.
+
+Desde otra terminal, comprueba la conexión con los tres motores.
 
 ```bash
 curl http://localhost:4000/api/health
@@ -105,6 +117,15 @@ curl http://localhost:4000/api/health
 
 Si una base no responde, el estado es `DEGRADADO`, la respuesta es `503` y esa base aparece con `ok: false`.
 
+Comprueba que la carga también permite iniciar sesión con una cuenta de prueba. El comando imprime solo el código HTTP esperado, `200`.
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"ana.lopez@ejemplo.com","password":"Qatok2026!"}' \
+  http://localhost:4000/api/auth/login
+```
+
 ## Comandos
 
 | Comando | Qué hace |
@@ -117,6 +138,7 @@ Si una base no responde, el estado es `DEGRADADO`, la respuesta es `503` y esa b
 | `npm run db:relational:migrar` | Aplica la migración de reintentos a PostgreSQL de desarrollo y conserva los datos |
 | `npm run db:sync:reactivar -- <id_evento>` | Reactiva el primer evento fallido después de corregir su causa |
 | `npm run db:document:reset` | Reconstruye las colecciones de MongoDB de desarrollo desde el dataset. Reemplaza los datos de esas colecciones |
+| `npm run db:graph:reset` | Reconstruye la proyección de Neo4j de desarrollo y sus datos derivados desde el dataset |
 | `npm run db:ps` / `npm run db:logs` | Estado y registros de los contenedores |
 | `npm run dev:api` | API con recarga automática |
 | `npm run verificar` | Lint, formato, tipos, pruebas unitarias, dataset y modelo: lo mismo que el CI, menos la integración |
@@ -157,7 +179,7 @@ Todos se cambian en tu `.env`.
 
 ## Datos de prueba
 
-`database/seed/dataset.json` es la única fuente de datos de prueba de las tres bases. Usuarios incluidos (contraseña de todos: `Qatok2026!`, solo para desarrollo):
+`database/seed/dataset.json` es la fuente común de datos de prueba de las tres bases. Con la carga del [inicio rápido](#inicio-rápido), estos usuarios pueden iniciar sesión con la contraseña de demostración `Qatok2026!`.
 
 | Usuario | Correo | Rol | Escenario |
 |---|---|---|---|
@@ -165,7 +187,7 @@ Todos se cambian en tu `.env`.
 | Bruno Díaz | bruno.diaz@ejemplo.com | Estudiante | Usuario nuevo, sin actividad |
 | Carla Ruiz | carla.ruiz@ejemplo.com | Administradora | Gestiona simulaciones y habilidades |
 
-> Los cargadores de cada base llegan en la fase 1. Mientras tanto, `python3 database/seed/validar_dataset.py` comprueba que el dataset cumpla las reglas del modelo.
+Ejecuta `npm run validar:dataset` para comprobar que el dataset cumple las reglas del modelo.
 
 ## Pruebas
 
