@@ -28,6 +28,7 @@
       "Ana López (0101)": "Usuaria con historial: 3 intentos COMPLETADO en 2 simulaciones, 1 EN_CURSO (para retomar), 1 evidencia con 3 enlaces (vigente, revocado y vencido).",
       "Bruno Díaz (0102)": "Usuario nuevo sin intentos, progreso ni evidencias (OBS-10).",
       "Carla Ruiz (0103)": "Administradora.",
+      "Servidor caído en hora pico (0304)": "Simulación en BORRADOR con un paso INCIDENT, una habilidad y contenido listo: no aparece en el catálogo ni en el grafo. Sirve para probar el paso INCIDENT: ábrela en Admin y publícala para jugarla.",
       "Presentación ante dirección (0303)": "Simulación en BORRADOR sin contenido: no aparece en el catálogo, no se proyecta al grafo y publicarla debe dar 409 SIN_CONTENIDO."
     }
   },
@@ -48,7 +49,8 @@
     "simulacion": [
       { "id_simulacion": "e0000000-0000-4000-8000-000000000301", "titulo": "Cliente molesto por un retraso", "descripcion": "Un cliente reclama por un pedido que lleva una semana de retraso.", "dificultad": "INTERMEDIA", "duracion_estimada": 15, "estado": "PUBLICADA", "id_revision_publicada": "e0000000-0000-4000-8000-000000001301" },
       { "id_simulacion": "e0000000-0000-4000-8000-000000000302", "titulo": "Tres entregas para mañana", "descripcion": "Tienes tres tareas con la misma fecha límite y no llegas a todas.", "dificultad": "BASICA", "duracion_estimada": 10, "estado": "PUBLICADA", "id_revision_publicada": "e0000000-0000-4000-8000-000000001302" },
-      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "titulo": "Presentación ante dirección", "descripcion": "Debes presentar resultados negativos a la dirección.", "dificultad": "AVANZADA", "duracion_estimada": null, "estado": "BORRADOR", "id_revision_publicada": null }
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "titulo": "Presentación ante dirección", "descripcion": "Debes presentar resultados negativos a la dirección.", "dificultad": "AVANZADA", "duracion_estimada": null, "estado": "BORRADOR", "id_revision_publicada": null },
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000304", "titulo": "Servidor caído en hora pico", "descripcion": "El servidor de la tienda en línea cae en plena hora pico de ventas y debes coordinar la respuesta.", "dificultad": "INTERMEDIA", "duracion_estimada": 10, "estado": "BORRADOR", "id_revision_publicada": null }
     ],
 
     "simulacion_habilidad": [
@@ -56,7 +58,8 @@
       { "id_simulacion": "e0000000-0000-4000-8000-000000000301", "id_habilidad": "e0000000-0000-4000-8000-000000000202", "peso": 0.4, "nivel_esperado": 60 },
       { "id_simulacion": "e0000000-0000-4000-8000-000000000302", "id_habilidad": "e0000000-0000-4000-8000-000000000203", "peso": 0.7, "nivel_esperado": 60 },
       { "id_simulacion": "e0000000-0000-4000-8000-000000000302", "id_habilidad": "e0000000-0000-4000-8000-000000000201", "peso": 0.3, "nivel_esperado": 50 },
-      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "id_habilidad": "e0000000-0000-4000-8000-000000000203", "peso": 0.5, "nivel_esperado": 70 }
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000303", "id_habilidad": "e0000000-0000-4000-8000-000000000203", "peso": 0.5, "nivel_esperado": 70 },
+      { "id_simulacion": "e0000000-0000-4000-8000-000000000304", "id_habilidad": "e0000000-0000-4000-8000-000000000203", "peso": 0.8, "nivel_esperado": 65 }
     ],
 
     "intento": [
@@ -203,6 +206,75 @@
                 "valoracion": 40.0, "id_paso_siguiente": null,
                 "consecuencias": [ { "id_consecuencia": "e0000000-0000-4000-8000-000000000609", "descripcion": "Las tres entregas llegan incompletas", "impacto": "NEGATIVO", "tipo": "CALIDAD" } ],
                 "retroalimentacion": { "tipo": "ERROR", "comentario": "Callar el riesgo deja sin margen a tu equipo.", "recomendacion": "Avisa en cuanto detectes que no llegas." }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "_id": "e0000000-0000-4000-8000-000000000304",
+        "pasos": [
+          {
+            "id_paso": "e0000000-0000-4000-8000-000000000405",
+            "orden": 1,
+            "tipo": "INCIDENTE",
+            "titulo": "Servidor caído en hora pico",
+            "descripcion": "La tienda en línea dejó de responder y los pedidos se acumulan sin procesar.",
+            "contexto": {
+              "cronologia": [
+                {
+                  "momento": "18:02",
+                  "hecho": "Las alertas indican que el servidor web no responde."
+                },
+                {
+                  "momento": "18:05",
+                  "hecho": "Los clientes reportan errores al pagar."
+                },
+                {
+                  "momento": "18:10",
+                  "hecho": "El tablero muestra 120 pedidos atascados."
+                }
+              ],
+              "severidad": "ALTA"
+            },
+            "opciones": [
+              {
+                "id_opcion": "e0000000-0000-4000-8000-000000000510",
+                "descripcion": "Reiniciar el servicio y avisar al equipo y a los clientes",
+                "valoracion": 90.0,
+                "id_paso_siguiente": null,
+                "consecuencias": [
+                  {
+                    "id_consecuencia": "e0000000-0000-4000-8000-000000000610",
+                    "descripcion": "El servicio vuelve en minutos y los clientes reciben aviso",
+                    "impacto": "POSITIVO",
+                    "tipo": "TIEMPO"
+                  }
+                ],
+                "retroalimentacion": {
+                  "tipo": "ACIERTO",
+                  "comentario": "Restablecer primero y comunicar a la vez limita el daño.",
+                  "recomendacion": "Documenta la causa en cuanto el servicio esté estable."
+                }
+              },
+              {
+                "id_opcion": "e0000000-0000-4000-8000-000000000511",
+                "descripcion": "Buscar la causa antes de hacer cualquier cosa",
+                "valoracion": 40.0,
+                "id_paso_siguiente": null,
+                "consecuencias": [
+                  {
+                    "id_consecuencia": "e0000000-0000-4000-8000-000000000611",
+                    "descripcion": "La caída se alarga y se pierden pedidos",
+                    "impacto": "NEGATIVO",
+                    "tipo": "TIEMPO"
+                  }
+                ],
+                "retroalimentacion": {
+                  "tipo": "ERROR",
+                  "comentario": "Investigar sin restablecer el servicio prolonga el impacto.",
+                  "recomendacion": "Restablece el servicio y analiza la causa después."
+                }
               }
             ]
           }
