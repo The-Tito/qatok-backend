@@ -126,6 +126,7 @@ export function createAttemptService({
         const attempt: Attempt = {
           id: randomUUID(),
           simulation_id: simulationId,
+          simulation: { id: simulationId, title: simulation.title },
           status: 'IN_PROGRESS',
           started_at: new Date().toISOString(),
           finished_at: null,

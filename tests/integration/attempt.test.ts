@@ -145,6 +145,7 @@ describe('F2 attempts', () => {
       code: 'ACTIVE_ATTEMPT_EXISTS',
       details: { attempt_id: created.attempt.id },
     });
+    expect(created.attempt.simulation).toEqual({ id: negotiation, title: expect.any(String) });
     expect(created.synchronization.graph).toBe('APPLIED');
     expect(created.current_step.id).toBe(first.step_id);
     expect(Object.keys(created.current_step.options[0]!).sort()).toEqual(['description', 'id']);

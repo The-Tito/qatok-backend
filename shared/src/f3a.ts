@@ -96,6 +96,7 @@ export const Recommendations = z.object({ items: z.array(Recommendation) });
 export const ProfileSkills = z.object({ items: z.array(ProfileSkill) });
 
 export const SkillEvolution = z.object({
+  skill: z.object({ id: Uuid, name: z.string(), target: Nivel.nullable() }),
   current_level: Nivel.nullable(),
   points: z.array(
     z.object({

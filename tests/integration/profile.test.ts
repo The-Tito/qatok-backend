@@ -186,6 +186,11 @@ describe('F3a profile and evidence', () => {
       .set('Authorization', ana);
     const progress = SkillEvolution.parse(evolution.body);
     expect(progress.current_level).toBe(75);
+    expect(progress.skill).toEqual({
+      id: communication,
+      name: 'Comunicación efectiva',
+      target: 75,
+    });
     expect(progress.points.length).toBeGreaterThan(0);
     const filtered = EvidenceList.parse((await list(ana, { skill_id: communication })).body);
     expect(filtered.total).toBe(1);

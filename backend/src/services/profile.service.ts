@@ -145,8 +145,10 @@ export function createProfileService({
 
     async evolution(userId: string, skillId: string) {
       const row = await graph.evolucion(userId, skillId);
-      if (!row) throw new ErrorApp('NOT_FOUND', 404, 'Skill evolution not found');
+      const skill = row ? await catalog.skillRef(skillId) : null;
+      if (!row || !skill) throw new ErrorApp('NOT_FOUND', 404, 'Skill evolution not found');
       return {
+        skill,
         current_level: row.nivel_actual,
         points: row.puntos.map((point) => ({
           finished_at: point.fecha,

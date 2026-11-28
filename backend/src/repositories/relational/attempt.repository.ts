@@ -10,6 +10,8 @@ const storageStatus = {
 
 const attemptJson = `jsonb_build_object(
   'id', i.id_intento, 'simulation_id', i.id_simulacion,
+  'simulation', (SELECT jsonb_build_object('id', sim.id_simulacion, 'title', sim.titulo)
+                 FROM simulacion sim WHERE sim.id_simulacion = i.id_simulacion),
   'status', CASE i.estado WHEN 'EN_CURSO' THEN 'IN_PROGRESS'
                 WHEN 'COMPLETADO' THEN 'COMPLETED' ELSE 'ABANDONED' END,
   'started_at', to_char(i.fecha_inicio AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
@@ -20,8 +22,12 @@ const attemptJson = `jsonb_build_object(
 export function createAttemptRepository(pool: Pool) {
   return {
     async lockSimulation(client: PoolClient, simulationId: string) {
-      const { rows } = await client.query<{ status: string; revision_id: string | null }>(
-        `SELECT estado AS status, id_revision_publicada AS revision_id
+      const { rows } = await client.query<{
+        status: string;
+        revision_id: string | null;
+        title: string;
+      }>(
+        `SELECT estado AS status, id_revision_publicada AS revision_id, titulo AS title
          FROM simulacion WHERE id_simulacion = $1 FOR UPDATE`,
         [simulationId],
       );
