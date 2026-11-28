@@ -128,7 +128,7 @@ Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FOR
 | `POST /api/attempts/:attemptId/responses` | Dueño | Mongo L → PG E + *ev* | `{ step_id, option_id }` | `201 { attempt, response, consequences, feedback, next_step, synchronization }` | `404 NOT_FOUND`, `409 ATTEMPT_NOT_IN_PROGRESS` (RI-22), `409 STEP_NOT_CURRENT` con `details.step_id`, `400 OPTION_NOT_IN_STEP` (RI-10) |
 | `POST /api/attempts/:attemptId/abandon` | Dueño | PG E + *ev* | — | `200 { attempt, synchronization }` | `404 NOT_FOUND`, `409 ATTEMPT_NOT_IN_PROGRESS` |
 
-- `Attempt`: `{ id, simulation_id, status, started_at, finished_at, score }`. Los estados son `IN_PROGRESS`, `COMPLETED` y `ABANDONED`. Solo un intento completado tiene puntuación. Las fechas son UTC y `finished_at` es nulo durante el intento.
+- `Attempt`: `{ id, simulation_id, simulation: { id, title }, status, started_at, finished_at, score }`. Los estados son `IN_PROGRESS`, `COMPLETED` y `ABANDONED`. Solo un intento completado tiene puntuación. Las fechas son UTC y `finished_at` es nulo durante el intento.
 - `AttemptResponse`: `{ id, step_id, option_id, sequence, answered_at }`. La secuencia empieza en 1. En el detalle, las respuestas se ordenan por secuencia.
 - `PlayerStep`: `{ id, order, type, title, description, context, options }`. Usa los tipos y campos de contexto de F1 administración. Cada opción contiene únicamente `{ id, description }`. Tras elegir, `consequences` y `feedback` tienen la forma de la opción en F1 administración.
 - El paso inicial tiene `order = 1`. A partir de ahí, manda el destino de la última opción. Una opción sin destino completa el intento y devuelve `next_step: null` (RI-23). La respuesta, el cierre y los eventos se confirman en una sola transacción.

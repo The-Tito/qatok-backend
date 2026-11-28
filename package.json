@@ -20,6 +20,7 @@
     "db:relational:reset": "node database/relational/ejecutar.mjs",
     "db:relational:migrar": "node database/relational/ejecutar.mjs migrar",
     "db:sync:reactivar": "npm run db:sync:reactivar -w @qatok/backend --",
+    "db:sync:pendiente": "npm run db:sync:pendiente -w @qatok/backend --",
     "db:document:reset": "node database/document/ejecutar.mjs",
     "db:graph:generar": "node database/graph/data/generar-carga.mjs",
     "db:graph:comprobar": "node database/graph/data/generar-carga.mjs --comprobar",

@@ -135,6 +135,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 | `npm run db:down` | Detiene las bases (los datos se conservan) |
 | `npm run db:reset` | Detiene las bases **y borra sus datos** |
 | `npm run db:relational:reset` | Reconstruye las tablas PostgreSQL de desarrollo desde el dataset. Reemplaza los datos de esas tablas |
+| `npm run db:sync:pendiente -- crear` | Deja un evento pendiente en la cola de Ana para ver el aviso «Actualizando tu progreso…» (`quitar` lo elimina). Solo PostgreSQL local |
 | `npm run db:relational:migrar` | Aplica las migraciones (reintentos y `habilidad.tipo_visual`) a PostgreSQL de desarrollo y conserva los datos |
 | `npm run db:sync:reactivar -- <id_evento>` | Reactiva el primer evento fallido después de corregir su causa |
 | `npm run db:document:reset` | Reconstruye las colecciones de MongoDB de desarrollo desde el dataset. Reemplaza los datos de esas colecciones |
