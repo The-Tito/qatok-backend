@@ -1,8 +1,11 @@
-import type { EvidenceDetail } from '@qatok/shared';
+import type { EvidenceDetail, SkillVisualType } from '@qatok/shared';
 import type { InstantaneaEvidencia } from '../repositories/document/evidencia.repository.js';
 import { publicFeedback, publicStepTypes } from './simulation-content.js';
 
-export function toEvidenceSnapshot(snapshot: InstantaneaEvidencia): EvidenceDetail['content'] {
+export function toEvidenceSnapshot(
+  snapshot: InstantaneaEvidencia,
+  visualTypes: Map<string, SkillVisualType | null> = new Map(),
+): EvidenceDetail['content'] {
   return {
     description: snapshot.descripcion,
     simulation: { id: snapshot.simulacion.id_simulacion, title: snapshot.simulacion.titulo },
@@ -11,6 +14,7 @@ export function toEvidenceSnapshot(snapshot: InstantaneaEvidencia): EvidenceDeta
     skills: snapshot.habilidades.map(({ id_habilidad, nombre }) => ({
       id: id_habilidad,
       name: nombre,
+      visual_type: visualTypes.get(id_habilidad) ?? null,
     })),
     decisions: snapshot.decisiones.map((decision) => ({
       sequence: decision.secuencia,

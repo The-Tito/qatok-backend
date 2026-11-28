@@ -16,7 +16,12 @@ export function createSkillService(
   synchronization: ProcesadorSincronizacion,
 ) {
   async function save(id: string | null, input: z.output<typeof SkillInput>) {
-    const skill = { id: id ?? randomUUID(), ...input, target_level: input.target_level ?? null };
+    const skill = {
+      id: id ?? randomUUID(),
+      ...input,
+      target_level: input.target_level ?? null,
+      visual_type: input.visual_type ?? null,
+    };
     const event = nuevoEvento('HABILIDAD_GUARDADA', {
       id_habilidad: skill.id,
       nombre: skill.name,

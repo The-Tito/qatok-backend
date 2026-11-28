@@ -161,6 +161,7 @@ describe('F3a profile and evidence', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: communication,
+          visual_type: 'VOICE',
           current_level: 75,
           classification: 'STRENGTH',
         }),

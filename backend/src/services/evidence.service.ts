@@ -19,6 +19,7 @@ import { nuevoEvento } from '../sync/eventos.js';
 import { toSynchronization } from '../sync/http-status.js';
 import type { ProcesadorSincronizacion } from '../sync/procesador.js';
 import { loadJourney, type PublishedContent } from './journey.js';
+import { readVisualTypes } from '../repositories/relational/skill-visual-type.js';
 import { toEvidenceSnapshot } from './evidence-snapshot.js';
 
 const notFound = () => new ErrorApp('NOT_FOUND', 404, 'Evidence not found');
@@ -156,7 +157,11 @@ export function createEvidenceService({
       if (!evidence) throw notFound();
       const snapshot = await snapshots.obtener(id);
       if (!snapshot) throw unavailable();
-      return { evidence, content: toEvidenceSnapshot(snapshot) };
+      const types = await readVisualTypes(
+        pool,
+        snapshot.habilidades.map((skill) => skill.id_habilidad),
+      );
+      return { evidence, content: toEvidenceSnapshot(snapshot, types) };
     },
 
     async update(userId: string, id: string, input: UpdateEvidenceInput) {

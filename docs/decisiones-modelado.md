@@ -46,6 +46,7 @@
 | DEC-26 | F2 | El reenvío devuelve conflicto. La desactivación permite terminar los intentos activos con la revisión publicada. | ADOPTADA para el contrato F2 |
 | DEC-27 | D-21 / P-03 | La puntuación provisional se redondea a dos decimales con empate al centésimo par. | PROPUESTA (P-03) |
 | DEC-28 | P-06 / F3b | El enlace vigente autoriza la lectura pública de una proyección de la instantánea. | PRELIMINAR (P-06) |
+| DEC-29 | Interfaz / F1 | La habilidad guarda un tipo visual opcional (`tipo_visual`) que solo afecta la presentación. | ADOPTADA |
 
 ---
 
@@ -250,6 +251,12 @@ Todos los entregables se crean en `entregables/`. Los razonamientos de verificac
 - El dueño puede crear y revocar enlaces. Un enlace activo y vigente autoriza la lectura pública aunque la evidencia sea privada. El destinatario funciona como etiqueta privada en este contrato.
 - PostgreSQL conserva la vigencia y aplica la unicidad del token. MongoDB aporta la instantánea. La salida pública conserva los textos y los nombres necesarios para evaluar la evidencia y omite los identificadores internos, el correo y los metadatos del enlace.
 - **Estado:** preliminar para P-06. El significado de la visibilidad pública fuera de un enlace queda pendiente.
+
+### DEC-29 — Tipo visual de la habilidad
+
+- La administración elige para cada habilidad un tipo visual (`visual_type` en la API, `habilidad.tipo_visual` en PostgreSQL): `VOICE`, `FIRE`, `CLOCK`, `LEAF`, `SPARK`, `HEART`, `MIND` o `STONE`. Nulo equivale a `STONE`. Solo afecta la presentación: no entra en el progreso ni en el grafo.
+- PostgreSQL es su dueño. Neo4j y las instantáneas de MongoDB no lo guardan: la API lo une desde PostgreSQL al responder perfil y detalle de evidencia. El evento `HABILIDAD_GUARDADA` no cambia.
+- **Estado:** adoptada (acordada con la interfaz). La página pública de evidencia no lo incluye.
 
 ---
 

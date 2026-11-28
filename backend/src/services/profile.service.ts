@@ -1,4 +1,4 @@
-import type { Account, AttemptPath, ProfileSkill } from '@qatok/shared';
+import type { Account, AttemptPath, ProfileSkill, SkillVisualType } from '@qatok/shared';
 import type { Pool } from 'pg';
 import { baseNoDisponible, ErrorApp } from '../lib/errores.js';
 import type { crearEvidenciaRepository } from '../repositories/document/evidencia.repository.js';
@@ -13,6 +13,7 @@ import type {
   createEvidenceRepository,
   createProfileRepository,
 } from '../repositories/relational/evidence.repository.js';
+import { readVisualTypes } from '../repositories/relational/skill-visual-type.js';
 import { inTransaction } from '../repositories/relational/transaction.js';
 import { loadJourney, type PublishedContent } from './journey.js';
 import { toPublicStep } from './simulation-content.js';
@@ -27,9 +28,13 @@ const classifications = {
   AREA_DE_MEJORA: 'AREA_FOR_IMPROVEMENT',
   SIN_REFERENCIA: 'NO_REFERENCE',
 } as const;
-const asSkill = (row: HabilidadPerfil): ProfileSkill => ({
+const asSkill = (
+  row: HabilidadPerfil,
+  types: Map<string, SkillVisualType | null>,
+): ProfileSkill => ({
   id: row.id_habilidad,
   name: row.nombre,
+  visual_type: types.get(row.id_habilidad) ?? null,
   current_level: row.nivel_actual,
   target: row.objetivo,
   classification: classifications[row.clasificacion],
@@ -69,6 +74,14 @@ export function createProfileService({
   graph: PerfilRepositoryGrafo;
   content: PublishedContent;
 }) {
+  async function asSkills(rows: HabilidadPerfil[]) {
+    const types = await readVisualTypes(
+      pool,
+      rows.map((row) => row.id_habilidad),
+    );
+    return rows.map((row) => asSkill(row, types));
+  }
+
   async function hydrateRecommendations(rows: Recomendacion[]) {
     const simulations = await catalog.findPublishedByIds(
       rows.map((row) => row.simulacion.id_simulacion),
@@ -114,7 +127,7 @@ export function createProfileService({
       return {
         user: { id: user.id, name: user.name },
         summary,
-        skills: graphData?.[0].map(asSkill) ?? [],
+        skills: graphData ? await asSkills(graphData[0]) : [],
         recommendations: graphData ? await hydrateRecommendations(graphData[1]) : [],
         recent_evidence: evidenceData?.items ?? [],
         incomplete_data,
@@ -123,7 +136,7 @@ export function createProfileService({
     },
 
     async skills(userId: string) {
-      return { items: (await graph.habilidades(userId)).map(asSkill) };
+      return { items: await asSkills(await graph.habilidades(userId)) };
     },
 
     async recommendations(userId: string, limit: number) {

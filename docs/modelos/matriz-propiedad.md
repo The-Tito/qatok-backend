@@ -39,7 +39,7 @@ Leyenda: **●** dueña · **◐** copia parcial (solo los campos listados) · �
 | E01 Usuario | ● `usuario` (nombre, correo normalizado único, contrasena_hash, fecha_registro, estado, **rol**) | — | ◐ `id_usuario` | Ancla de C-01 a C-05. El correo **no** se copia (RF-09) |
 | E02 Simulacion — metadatos | ● `simulacion` (titulo, descripcion, dificultad, duracion_estimada, estado) | — | ◐ `id_simulacion`, `titulo`, `estado` | `estado` → C-01; `titulo` → resultados de C-01, C-04 y C-05 |
 | E02 Simulacion — contenido | — | ● `contenidos_simulacion` (un documento por simulación) | — | — |
-| E03 Habilidad | ● `habilidad` (nombre único, descripcion, categoria, nivel_objetivo) | — | ◐ `id_habilidad`, `nombre`, `nivel_objetivo` | `nombre` → C-04 y C-05; `nivel_objetivo` → C-02 |
+| E03 Habilidad | ● `habilidad` (nombre único, descripcion, categoria, nivel_objetivo, tipo_visual) | — | ◐ `id_habilidad`, `nombre`, `nivel_objetivo` | `nombre` → C-04 y C-05; `nivel_objetivo` → C-02 |
 | R04 DESARROLLA | ● `simulacion_habilidad` (PK compuesta = RI-08; peso, nivel_esperado) | — | ◐ relación con `peso`, `nivel_esperado` | C-01, C-02, C-05 |
 | E04 Paso | — | ● anidado: `pasos[]` (titulo, descripcion, orden, tipo, **contexto según el tipo**) | ◐ `id_paso`, `orden` + `CONTIENE` | Ramificación; orden en C-03 |
 | E05 Opcion | — | ● anidada: `pasos[].opciones[]` (descripcion, valoracion, id_paso_siguiente) | ◐ `id_opcion` + `OFRECE`, `CONDUCE_A` | Ramificación; C-03 |

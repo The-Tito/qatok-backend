@@ -204,6 +204,7 @@ describe('F1 API contract', () => {
       description: 'Description',
       category: 'Practice',
       target_level: 65,
+      visual_type: 'LEAF',
     };
     const create = () =>
       request(app).post('/api/admin/skills').set('Authorization', authorized).send(input);
@@ -213,7 +214,13 @@ describe('F1 API contract', () => {
     ]);
     const created = SkillMutation.parse((await create()).body);
     skills.add(created.skill.id);
+    expect(created.skill.visual_type).toBe('LEAF');
     expect((await create()).body.error.code).toBe('SKILL_ALREADY_EXISTS');
+    const invalidType = await request(app)
+      .post('/api/admin/skills')
+      .set('Authorization', authorized)
+      .send({ ...input, name: input.name + ' invalid', visual_type: 'WATER' });
+    expect(invalidType.body.error.code).toBe('VALIDATION_ERROR');
     const { rows } = await connections.postgres.query<{ id: string }>(
       'SELECT id_habilidad AS id FROM simulacion_habilidad LIMIT 1',
     );
@@ -228,11 +235,14 @@ describe('F1 API contract', () => {
     const update = await request(app)
       .put(path)
       .set('Authorization', authorized)
-      .send({ ...input, target_level: 75 });
-    expect(SkillMutation.parse(update.body).skill.target_level).toBe(75);
+      .send({ ...input, target_level: 75, visual_type: null });
+    expect(SkillMutation.parse(update.body).skill).toMatchObject({
+      target_level: 75,
+      visual_type: null,
+    });
     const listed = await request(app).get('/api/skills').set('Authorization', authorized);
     expect(listed.body.items).toContainEqual(
-      expect.objectContaining({ id: created.skill.id, target_level: 75 }),
+      expect.objectContaining({ id: created.skill.id, target_level: 75, visual_type: null }),
     );
     expect(
       Deletion.parse((await request(app).delete(path).set('Authorization', authorized)).body)
