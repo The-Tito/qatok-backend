@@ -275,7 +275,13 @@ describe('simulation administration API', () => {
     expect(SimulationContent.parse((await putContent(id, 1, [bad])).body).version).toBe(2);
     expect((await putContent(id, 1, [step])).body.error.code).toBe('STALE_CONTENT_VERSION');
     expect((await publish(id, 1)).body.error.code).toBe('STALE_CONTENT_VERSION');
-    expect((await publish(id, 2)).body.error.code).toBe('INVALID_BRANCHES');
+    const invalid = (await publish(id, 2)).body.error;
+    expect(invalid.code).toBe('INVALID_BRANCHES');
+    expect(invalid.details).toEqual({
+      reason: 'CYCLE',
+      step_id: step.id,
+      option_id: bad.options[0]?.id,
+    });
     expect(await storedReference(id)).toEqual({ state: 'BORRADOR', revision: null });
   });
 

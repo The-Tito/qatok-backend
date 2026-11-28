@@ -45,10 +45,27 @@ export interface Revision {
   pasos: PasoContenido[];
 }
 
+export type CausaContenido =
+  | 'NO_STEPS'
+  | 'STEP_WITHOUT_OPTIONS'
+  | 'OPTION_WITHOUT_CONSEQUENCES'
+  | 'MISSING_START_STEP'
+  | 'CYCLE'
+  | 'TARGET_OUTSIDE_SIMULATION'
+  | 'UNREACHABLE_STEP';
+
+/** Qué falló al publicar y dónde: la API lo expone en `details` del 409. */
+export interface DetalleContenido {
+  reason: CausaContenido;
+  step_id?: string;
+  option_id?: string;
+}
+
 export class ErrorContenido extends Error {
   constructor(
     readonly codigo: 'CONTENIDO_INCOMPLETO' | 'RAMIFICACION_INVALIDA' | 'VALIDACION',
     mensaje: string,
+    readonly detalle?: DetalleContenido,
   ) {
     super(mensaje);
   }
@@ -72,46 +89,66 @@ function comprobarUnicidad(pasos: PasoContenido[]) {
 
 export function comprobarPublicable(pasos: PasoContenido[]) {
   comprobarUnicidad(pasos);
-  if (
-    pasos.length === 0 ||
-    pasos.some(
-      (paso) =>
-        paso.opciones.length === 0 ||
-        paso.opciones.some((opcion) => opcion.consecuencias.length === 0),
-    )
-  ) {
-    throw new ErrorContenido(
-      'CONTENIDO_INCOMPLETO',
-      'Cada paso requiere opciones y cada opción requiere consecuencias.',
-    );
+  const incompleto = (mensaje: string, detalle: DetalleContenido) =>
+    new ErrorContenido('CONTENIDO_INCOMPLETO', mensaje, detalle);
+  const invalido = (mensaje: string, detalle: DetalleContenido) =>
+    new ErrorContenido('RAMIFICACION_INVALIDA', mensaje, detalle);
+  if (pasos.length === 0) {
+    throw incompleto('El escenario no tiene pasos.', { reason: 'NO_STEPS' });
+  }
+  for (const paso of pasos) {
+    if (paso.opciones.length === 0) {
+      throw incompleto('Cada paso requiere opciones.', {
+        reason: 'STEP_WITHOUT_OPTIONS',
+        step_id: paso.id_paso,
+      });
+    }
+    const sinConsecuencias = paso.opciones.find((opcion) => opcion.consecuencias.length === 0);
+    if (sinConsecuencias) {
+      throw incompleto('Cada opción requiere consecuencias.', {
+        reason: 'OPTION_WITHOUT_CONSEQUENCES',
+        step_id: paso.id_paso,
+        option_id: sinConsecuencias.id_opcion,
+      });
+    }
   }
   const inicial = pasos.find((paso) => paso.orden === 1);
-  if (!inicial) throw new ErrorContenido('RAMIFICACION_INVALIDA', 'Falta el paso inicial.');
+  if (!inicial) {
+    throw invalido('Falta el paso inicial.', { reason: 'MISSING_START_STEP' });
+  }
   const porId = new Map(pasos.map((paso) => [paso.id_paso, paso]));
   const visitando = new Set<string>();
   const visitados = new Set<string>();
 
-  function visitar(id: string) {
-    if (visitando.has(id))
-      throw new ErrorContenido('RAMIFICACION_INVALIDA', 'La ruta contiene un ciclo.');
+  function visitar(id: string, origen: { step_id: string; option_id: string } | null) {
+    if (visitando.has(id)) {
+      throw invalido('La ruta contiene un ciclo.', { reason: 'CYCLE', ...origen! });
+    }
     if (visitados.has(id)) return;
     const paso = porId.get(id);
-    if (!paso)
-      throw new ErrorContenido('RAMIFICACION_INVALIDA', 'La ruta apunta fuera del escenario.');
+    if (!paso) {
+      throw invalido('La ruta apunta fuera del escenario.', {
+        reason: 'TARGET_OUTSIDE_SIMULATION',
+        ...origen!,
+      });
+    }
     visitando.add(id);
     for (const opcion of paso.opciones) {
-      if (opcion.id_paso_siguiente !== null) visitar(opcion.id_paso_siguiente);
+      if (opcion.id_paso_siguiente !== null) {
+        visitar(opcion.id_paso_siguiente, { step_id: id, option_id: opcion.id_opcion });
+      }
     }
     visitando.delete(id);
     visitados.add(id);
   }
 
-  visitar(inicial.id_paso);
-  if (visitados.size !== pasos.length) {
-    throw new ErrorContenido(
-      'RAMIFICACION_INVALIDA',
-      'Hay pasos a los que no se llega desde el inicio.',
-    );
+  visitar(inicial.id_paso, null);
+  const inalcanzable = pasos.find((paso) => !visitados.has(paso.id_paso));
+  if (inalcanzable) {
+    throw invalido('Hay pasos a los que no se llega desde el inicio.', {
+      reason: 'UNREACHABLE_STEP',
+      step_id: inalcanzable.id_paso,
+    });
   }
 }
 
