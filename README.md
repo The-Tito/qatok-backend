@@ -6,7 +6,7 @@
 
 Proyecto final de **Bases de Datos en la Nube**, Universidad Politécnica de Chiapas. Es una sola aplicación que usa, de forma coordinada y justificada, una base de datos **relacional** (PostgreSQL), una **documental** (MongoDB) y una **de grafos** (Neo4j).
 
-> **Estado:** fase 0 (fundaciones) terminada en su parte técnica. Las bases, la API base y las pruebas de conectividad funcionan; los flujos de la aplicación se construyen en las fases 1 a 3. Ver [Estado del proyecto](#estado-del-proyecto).
+> **Estado:** la aplicación integrada está disponible en `develop`. El backend sirve los flujos de cuentas, catálogo y administración, juego, perfil, evidencia y compartición. Consulta el [estado de la entrega](#estado-del-proyecto).
 
 ---
 
@@ -84,6 +84,8 @@ npm run setup:env
 npm run db:up
 ```
 
+Consulta [`.env.example`](.env.example) para ver los nombres y valores de ejemplo. `npm run setup:env` crea las credenciales para el entorno local.
+
 En una instalación local nueva, crea los esquemas y carga los datos de demostración antes de arrancar la API. Los comandos de carga reemplazan datos, así que usa volúmenes de desarrollo vacíos para este paso. El hash habilita el inicio de sesión de las cuentas de prueba con la contraseña del dataset.
 
 ```bash
@@ -116,6 +118,8 @@ curl http://localhost:4000/api/health
 ```
 
 Si una base no responde, el estado es `DEGRADADO`, la respuesta es `503` y esa base aparece con `ok: false`.
+
+Para ejecutar la interfaz, mantén la API en marcha y sigue la instalación del frontend en una carpeta hermana. Abre `http://localhost:3000/login` para entrar con una cuenta del dataset o `http://localhost:3000/status` para consultar la salud de los tres motores. [Inicio rápido del frontend](https://github.com/The-Tito/qatok-frontend/blob/develop/README.md#preparar-tu-máquina)
 
 Comprueba que la carga también permite iniciar sesión con una cuenta de prueba. El comando imprime solo el código HTTP esperado, `200`.
 
@@ -196,7 +200,7 @@ Ejecuta `npm run validar:dataset` para comprobar que el dataset cumple las regla
 - **Integración** (`tests/integration/`): conectividad real con las tres bases, incluidos los casos de base caída o credenciales incorrectas.
 - **CI** (`.github/workflows/ci.yml`): en cada push y pull request levanta las tres bases como servicios y corre todo lo anterior.
 
-La guía del proyecto pide siete tipos de prueba de integración (conectividad, funcional, integridad, integración, consistencia, errores y rendimiento); su responsable y avance están en el [plan de trabajo](context/plan-trabajo.md).
+La [evidencia de E8](docs/pruebas/README.md) registra los siete tipos de prueba que pide la guía, con el escenario, la versión probada y el resultado. Consulta el índice para reproducir la suite contra bases aisladas.
 
 ## Documentación
 
@@ -210,6 +214,7 @@ La guía del proyecto pide siete tipos de prueba de integración (conectividad, 
 | [Contrato de la API](docs/api/contrato-v0.md) | Endpoints, entradas, salidas y errores |
 | [Catálogo de operaciones y consultas (E5)](docs/api/catalogo-operaciones.md) | Casos normales, límite y de error con evidencia de las tres bases |
 | [Decisiones de modelado](docs/decisiones-modelado.md) | Registro de decisiones DEC-01 a DEC-24 |
+| [Evidencia de verificación (E8)](docs/pruebas/README.md) | Siete tipos de prueba, resultados y reproducción en Docker |
 | [Grafo de conocimiento](docs/KG.json) | Dominio completo del proyecto (v1.2) |
 | [Guía del profesor](context/guia/Guia_Proyecto_Final_Bases_Datos.pdf) | Requisitos del proyecto final |
 
@@ -228,11 +233,13 @@ Las reglas completas están en [convenciones §7](context/convenciones.md).
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 0 | Acuerdos (matriz, convenciones, contrato, datos de prueba), estructura, Docker, esqueleto de la API, CI | 🟨 Casi terminada: falta que el equipo revise los acuerdos (issue #2) |
-| 1 | Las tres bases: esquemas, carga desde el dataset, consultas y pruebas por base | ⏳ Siguiente |
-| 2 | Backend de los flujos y sincronización con el grafo | ⏳ |
-| 3 | Interfaz y las siete pruebas de integración | ⏳ |
-| 4 | Cierre: rendimiento, documentación final y demostración | ⏳ |
+| 0 | Matriz, convenciones, contrato, dataset, Docker y CI | Base técnica disponible en `develop` |
+| 1 | Esquemas, carga reproducible, consultas y pruebas por motor | Implementados para PostgreSQL, MongoDB y Neo4j |
+| 2 | Backend de los flujos y sincronización con el grafo | API REST y reconciliación implementadas |
+| 3 | Interfaz web y flujos integrados | Frontend integrado en `develop` |
+| 4 | Documentación, evidencia y release | E1, E2 y E5 en el [PR #56](https://github.com/The-Tito/qatok-backend/pull/56). Evidencia de E8 recopilada. Release por preparar. |
+
+La ejecución local con datos de prueba está documentada. La instalación cruzada entre integrantes y el ensayo de demostración quedan pendientes para después de la entrega.
 
 ## Solución de problemas
 
