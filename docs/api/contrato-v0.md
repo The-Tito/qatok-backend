@@ -103,6 +103,7 @@ El resumen incluye `id`, `title`, `description`, `difficulty` (`BASIC`, `INTERME
 |---|---|---|---|---|---|
 | `GET /api/admin/simulations` | ADMIN | PG L | `status?`, `limit?`, `offset?` | `200 { items: AdminSimulation[], total }` | `400 VALIDATION_ERROR` |
 | `POST /api/admin/simulations` | ADMIN | PG E | `SimulationInput` | `201 AdminSimulation` con estado DRAFT | `400 VALIDATION_ERROR`, `404 SKILL_NOT_FOUND` |
+| `GET /api/admin/simulations/:simulationId` | ADMIN | PG L | — | `200 AdminSimulation` (cualquier estado) | `400 VALIDATION_ERROR`, `404 NOT_FOUND` |
 | `PUT /api/admin/simulations/:simulationId` | ADMIN | PG E | `SimulationInput` | `200 AdminSimulation` | `400 VALIDATION_ERROR`, `404 NOT_FOUND` o `SKILL_NOT_FOUND`, `409 SIMULATION_NOT_EDITABLE` |
 | `GET /api/admin/simulations/:simulationId/content` | ADMIN | PG + Mongo L | — | `200 { version, steps }` | `404 NOT_FOUND` o `MISSING_CONTENT` |
 | `PUT /api/admin/simulations/:simulationId/content` | ADMIN | PG L → Mongo E | `{ version, steps }`; `version: null` para crear | `200 { version, steps }` | `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 SIMULATION_NOT_EDITABLE` o `STALE_CONTENT_VERSION` |

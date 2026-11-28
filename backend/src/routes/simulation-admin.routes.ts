@@ -7,6 +7,7 @@ export function createSimulationAdminRoutes({ simulations, requireSession }: Con
   router.use(requireSession, requireAdmin);
   router.get('/', simulations.list);
   router.post('/', simulations.create);
+  router.get('/:simulationId', simulations.get);
   router.put('/:simulationId', simulations.update);
   router.delete('/:simulationId', simulations.deleteDraft);
   router.get('/:simulationId/content', simulations.getContent);
