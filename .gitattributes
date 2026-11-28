@@ -1,0 +1,8 @@
+# Saltos de línea LF en el repositorio y en el árbol de trabajo (también en Windows),
+# para que la copia de shared/ del frontend coincida byte a byte.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
