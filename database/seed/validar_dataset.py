@@ -34,6 +34,7 @@ TIPO_PASO = {
 IMPACTO = {"POSITIVO", "NEUTRO", "NEGATIVO"}
 TIPO_CONSECUENCIA = {"RELACIONAL", "TIEMPO", "CALIDAD", "REPUTACION"}
 TIPO_RETRO = {"ACIERTO", "PARCIAL", "ERROR"}
+TIPOS_VISUALES = {"VOICE", "FIRE", "CLOCK", "LEAF", "SPARK", "HEART", "MIND", "STONE"}
 
 ok = fallos = 0
 
@@ -85,6 +86,7 @@ nombres = [h["nombre"] for h in R["habilidad"]]
 check(len(set(nombres)) == len(nombres), "RI-03 nombre de habilidad repetido")
 for h in R["habilidad"]:
     check(h["nivel_objetivo"] is None or 0 <= h["nivel_objetivo"] <= 100, "RI-24 nivel_objetivo fuera de 0–100")
+    check(h.get("tipo_visual") in TIPOS_VISUALES, f"habilidad.tipo_visual fuera de catálogo: {h.get('tipo_visual')}")
 tokens = [c["token"] for c in R["comparticion"]]
 check(len(set(tokens)) == len(tokens), "RI-15 token repetido")
 

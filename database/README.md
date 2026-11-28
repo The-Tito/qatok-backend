@@ -21,7 +21,7 @@ Ejecuta `npm run test:integration -- tests/integration/relacional.test.ts` para 
 
 ### Cola de sincronización
 
-Si las tablas ya existen, ejecuta `npm run db:relational:migrar` antes de arrancar la API. La migración añade `proximo_intento` y conserva el contenido de la cola. Un reinicio relacional nuevo ya incluye la columna.
+Si las tablas ya existen, ejecuta `npm run db:relational:migrar` antes de arrancar la API. La migración añade `proximo_intento` y conserva el contenido de la cola. Esa misma migración añade `habilidad.tipo_visual` (nulo hasta que la administración lo elija). Un reinicio relacional nuevo ya incluye ambas columnas.
 
 El primer evento sin aplicar puede estar esperando su próximo intento o haber agotado cinco intentos. En este último caso la cola permanece pausada. Tras corregir la causa, ejecuta `npm run db:sync:reactivar -- <id_evento>` para devolver ese evento a PENDIENTE. La API reanuda el procesamiento por orden. La reactivación solo admite la primera fila si está FALLIDO.
 

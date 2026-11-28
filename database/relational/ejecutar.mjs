@@ -114,12 +114,16 @@ async function ejecutar(accion) {
     await client.query('BEGIN');
     await client.query('SET LOCAL search_path TO public');
     if (accion === 'reset') await reconstruir(client, process.env.QATOK_SEED_PASSWORD_HASH);
-    else await client.query(leerSql('schema/03-reintentos.sql'));
+    else {
+      for (const ruta of ['schema/03-reintentos.sql', 'schema/04-tipo-visual.sql']) {
+        await client.query(leerSql(ruta));
+      }
+    }
     await client.query('COMMIT');
     console.warn(
       accion === 'reset'
         ? 'PostgreSQL reconstruido desde el dataset de desarrollo.'
-        : 'Migración de reintentos aplicada.',
+        : 'Migraciones aplicadas (reintentos y tipo visual de la habilidad).',
     );
   } catch (error) {
     await revertir(client).catch(() => {});

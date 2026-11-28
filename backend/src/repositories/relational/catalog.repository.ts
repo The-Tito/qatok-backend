@@ -16,7 +16,7 @@ export const summary = `jsonb_build_object(
              WHEN 'PUBLICADA' THEN 'PUBLISHED' ELSE 'INACTIVE' END,
   'skills', COALESCE((
     SELECT jsonb_agg(jsonb_build_object('id', h.id_habilidad, 'name', h.nombre,
-      'weight', sh.peso, 'expected_level', sh.nivel_esperado)
+      'visual_type', h.tipo_visual, 'weight', sh.peso, 'expected_level', sh.nivel_esperado)
       ORDER BY lower(h.nombre), h.id_habilidad)
     FROM simulacion_habilidad sh JOIN habilidad h USING (id_habilidad)
     WHERE sh.id_simulacion = s.id_simulacion

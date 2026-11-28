@@ -135,7 +135,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 | `npm run db:down` | Detiene las bases (los datos se conservan) |
 | `npm run db:reset` | Detiene las bases **y borra sus datos** |
 | `npm run db:relational:reset` | Reconstruye las tablas PostgreSQL de desarrollo desde el dataset. Reemplaza los datos de esas tablas |
-| `npm run db:relational:migrar` | Aplica la migración de reintentos a PostgreSQL de desarrollo y conserva los datos |
+| `npm run db:relational:migrar` | Aplica las migraciones (reintentos y `habilidad.tipo_visual`) a PostgreSQL de desarrollo y conserva los datos |
 | `npm run db:sync:reactivar -- <id_evento>` | Reactiva el primer evento fallido después de corregir su causa |
 | `npm run db:document:reset` | Reconstruye las colecciones de MongoDB de desarrollo desde el dataset. Reemplaza los datos de esas colecciones |
 | `npm run db:graph:reset` | Reconstruye la proyección de Neo4j de desarrollo y sus datos derivados desde el dataset |

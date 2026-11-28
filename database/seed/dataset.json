@@ -40,9 +40,9 @@
     ],
 
     "habilidad": [
-      { "id_habilidad": "e0000000-0000-4000-8000-000000000201", "nombre": "Comunicación efectiva", "descripcion": "Expresar ideas con claridad y escuchar al otro.", "categoria": "Interpersonal", "nivel_objetivo": 75 },
-      { "id_habilidad": "e0000000-0000-4000-8000-000000000202", "nombre": "Resolución de conflictos", "descripcion": "Llegar a acuerdos cuando hay intereses en tensión.", "categoria": "Interpersonal", "nivel_objetivo": 70 },
-      { "id_habilidad": "e0000000-0000-4000-8000-000000000203", "nombre": "Gestión del tiempo", "descripcion": "Priorizar tareas y comunicar riesgos de plazo a tiempo.", "categoria": "Organizacional", "nivel_objetivo": null }
+      { "id_habilidad": "e0000000-0000-4000-8000-000000000201", "nombre": "Comunicación efectiva", "descripcion": "Expresar ideas con claridad y escuchar al otro.", "categoria": "Interpersonal", "nivel_objetivo": 75, "tipo_visual": "VOICE" },
+      { "id_habilidad": "e0000000-0000-4000-8000-000000000202", "nombre": "Resolución de conflictos", "descripcion": "Llegar a acuerdos cuando hay intereses en tensión.", "categoria": "Interpersonal", "nivel_objetivo": 70, "tipo_visual": "FIRE" },
+      { "id_habilidad": "e0000000-0000-4000-8000-000000000203", "nombre": "Gestión del tiempo", "descripcion": "Priorizar tareas y comunicar riesgos de plazo a tiempo.", "categoria": "Organizacional", "nivel_objetivo": null, "tipo_visual": "CLOCK" }
     ],
 
     "simulacion": [

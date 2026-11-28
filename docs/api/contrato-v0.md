@@ -27,7 +27,7 @@ Los objetos siguientes conservan la notación del diseño original. Para los obj
 
 // Habilidad
 { "id_habilidad": "uuid", "nombre": "Comunicación efectiva", "descripcion": "…",
-  "categoria": "Blanda", "nivel_objetivo": 70 }
+  "categoria": "Blanda", "nivel_objetivo": 70, "tipo_visual": "VOICE" }
 
 // SimulacionResumen (catálogo)
 { "id_simulacion": "uuid", "titulo": "Cliente molesto por un retraso", "descripcion": "…",
@@ -82,7 +82,7 @@ Las rutas protegidas usan `Authorization: Bearer <token>`. El JWT caduca a las o
 | Método y ruta | Acceso | Bases | Entrada | Respuesta | Errores |
 |---|---|---|---|---|---|
 | `GET /api/skills` | Usuario | PG L | — | `200 { items: Skill[], total }` | `401 UNAUTHENTICATED` |
-| `POST /api/admin/skills` | Admin | PG E + *ev* | `{ name, description, category, target_level? }` | `201 { skill, synchronization }` | `400`, `403 FORBIDDEN`, `409 SKILL_ALREADY_EXISTS` |
+| `POST /api/admin/skills` | Admin | PG E + *ev* | `{ name, description, category, target_level?, visual_type? }` | `201 { skill, synchronization }` | `400`, `403 FORBIDDEN`, `409 SKILL_ALREADY_EXISTS` |
 | `PUT /api/admin/skills/:skillId` | Admin | PG E + *ev* | Igual que POST | `200 { skill, synchronization }` | `404 NOT_FOUND`, `409 SKILL_ALREADY_EXISTS` |
 | `DELETE /api/admin/skills/:skillId` | Admin | PG E + *ev* | — | `200 { deleted: true, synchronization }` | `404 NOT_FOUND`, `409 SKILL_IN_USE` |
 
@@ -95,7 +95,7 @@ La respuesta incluye `id` y `target_level`, que puede ser un entero de 0 a 100 o
 | `GET /api/simulations` | Usuario | PG L | `search?`, `skill_id?`, `difficulty?`, `limit?`, `offset?` | `200 { items: SimulationSummary[], total }` | `400 VALIDATION_ERROR` |
 | `GET /api/simulations/:simulationId` | Usuario | PG L | — | `200 SimulationSummary` | `404 NOT_FOUND` si no existe o no está publicada |
 
-El resumen incluye `id`, `title`, `description`, `difficulty` (`BASIC`, `INTERMEDIATE`, `ADVANCED`), `estimated_duration` (entero o nulo), `status: "PUBLISHED"` y `skills: [{ id, name, weight, expected_level }]`. La búsqueda compara texto literal en el título o la descripción sin distinguir mayúsculas. Los filtros se combinan. Los resultados se ordenan por título e ID, con `limit=20` (máximo 100), `offset=0` y el total antes de paginar.
+El resumen incluye `id`, `title`, `description`, `difficulty` (`BASIC`, `INTERMEDIATE`, `ADVANCED`), `estimated_duration` (entero o nulo), `status: "PUBLISHED"` y `skills: [{ id, name, visual_type, weight, expected_level }]`. La búsqueda compara texto literal en el título o la descripción sin distinguir mayúsculas. Los filtros se combinan. Los resultados se ordenan por título e ID, con `limit=20` (máximo 100), `offset=0` y el total antes de paginar.
 
 ### F1 Administración de simulaciones
 
@@ -152,13 +152,13 @@ Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FOR
 | `PATCH /api/evidence/:evidenceId` | Dueño | PG E (+ *ev* si cambia el título) | `{ title?, visibility? }`, al menos un campo | `200 { evidence, synchronization }`, con sincronización nula si no cambia el título |
 | `DELETE /api/evidence/:evidenceId` | Dueño | PG E + *ev* → Mongo E | — | `200 { deleted: true, synchronization }` |
 
-`Profile` incluye `user: { id, name }`, `summary: { completed_attempts, evidence_count }`, `skills`, `recommendations`, `recent_evidence`, `incomplete_data` y `pending_sync_count`. Las habilidades incluyen `id, name, current_level, target, classification, correct, partial, incorrect`. Las recomendaciones incluyen `simulation: SimulationSummary, skills_to_improve, priority`. Se valida en PostgreSQL que las recomendaciones sigan publicadas.
+`Profile` incluye `user: { id, name }`, `summary: { completed_attempts, evidence_count }`, `skills`, `recommendations`, `recent_evidence`, `incomplete_data` y `pending_sync_count`. Las habilidades incluyen `id, name, visual_type, current_level, target, classification, correct, partial, incorrect`. Las recomendaciones incluyen `simulation: SimulationSummary, skills_to_improve, priority`. Se valida en PostgreSQL que las recomendaciones sigan publicadas.
 
 El perfil devuelve hasta cinco recomendaciones y cinco evidencias recientes. Cada evidencia reciente incluye la descripción de su instantánea. Si Neo4j o MongoDB no responden, el perfil conserva los datos disponibles y añade `graph` o `document` a `incomplete_data`. Una instantánea faltante también marca `document`. Si falla PostgreSQL, el perfil responde `503 DATABASE_UNAVAILABLE`. `pending_sync_count` cuenta los eventos sin aplicar atribuibles al usuario y sus intentos.
 
 El recorrido devuelve decisiones con `sequence, step: { id, title, type }, option: { id, description }, consequences, feedback`. PostgreSQL valida la propiedad y conserva el recorrido confirmado. MongoDB aporta los textos de la revisión publicada. La API devuelve `graph_pending: true` si C-03 aún no refleja ese recorrido. Las rutas individuales devuelven `503 DATABASE_UNAVAILABLE` si falla una base requerida.
 
-`Evidence` incluye `id, attempt_id, title, generated_at, visibility`. El listado añade `simulation, skills, active_shares` y usa `limit` de 1 a 100 (20 por defecto) y `offset` de 0 por defecto. Los enlaces cuentan si están activos y no han vencido. El filtro de habilidad usa la proyección de Neo4j y respeta propiedad y existencia en PostgreSQL. Las evidencias nacen `PRIVATE`. Cambiar a `PUBLIC` no concede acceso anónimo al detalle.
+`Evidence` incluye `id, attempt_id, title, generated_at, visibility`. El listado añade `simulation, skills` (cada una con `id, name, visual_type`), `active_shares` y usa `limit` de 1 a 100 (20 por defecto) y `offset` de 0 por defecto. Los enlaces cuentan si están activos y no han vencido. El filtro de habilidad usa la proyección de Neo4j y respeta propiedad y existencia en PostgreSQL. Las evidencias nacen `PRIVATE`. Cambiar a `PUBLIC` no concede acceso anónimo al detalle.
 
 Solo se genera una evidencia por intento completado. Si no se envía título, se usa el de la simulación. La instantánea conserva descripción, simulación, puntuación, habilidades, decisiones y fecha de creación. El propietario puede cambiar título y visibilidad sin alterar la instantánea. Si PostgreSQL rechaza la transacción se intenta retirar el documento. Si no se puede confirmar su estado, la reconciliación se encarga de revisar la copia. El borrado confirma registro y evento antes de retirar el documento.
 

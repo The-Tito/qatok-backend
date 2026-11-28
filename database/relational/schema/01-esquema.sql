@@ -13,7 +13,9 @@ CREATE TABLE habilidad (
   nombre VARCHAR(100) NOT NULL CONSTRAINT uq_habilidad_nombre UNIQUE CHECK (btrim(nombre) <> ''),
   descripcion TEXT NOT NULL,
   categoria VARCHAR(50) NOT NULL,
-  nivel_objetivo NUMERIC(5,2) CHECK (nivel_objetivo BETWEEN 0 AND 100)
+  nivel_objetivo NUMERIC(5,2) CHECK (nivel_objetivo BETWEEN 0 AND 100),
+  tipo_visual VARCHAR(10) CONSTRAINT ck_habilidad_tipo_visual
+    CHECK (tipo_visual IN ('VOICE', 'FIRE', 'CLOCK', 'LEAF', 'SPARK', 'HEART', 'MIND', 'STONE'))
 );
 
 CREATE TABLE simulacion (

@@ -84,7 +84,7 @@ export function createEvidenceRepository(pool: Pool) {
              'visibility', CASE e.visibilidad WHEN 'PRIVADA' THEN 'PRIVATE' ELSE 'PUBLIC' END,
              'simulation', jsonb_build_object('id', s.id_simulacion, 'title', s.titulo),
              'skills', COALESCE((
-               SELECT jsonb_agg(jsonb_build_object('id', h.id_habilidad, 'name', h.nombre) ORDER BY h.nombre, h.id_habilidad)
+               SELECT jsonb_agg(jsonb_build_object('id', h.id_habilidad, 'name', h.nombre, 'visual_type', h.tipo_visual) ORDER BY h.nombre, h.id_habilidad)
                FROM simulacion_habilidad sh JOIN habilidad h USING (id_habilidad)
                WHERE sh.id_simulacion = s.id_simulacion
              ), '[]'::jsonb),
