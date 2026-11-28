@@ -15,6 +15,9 @@ export function createSimulationController(simulations: SimulationService) {
     async list(request: Request, response: Response) {
       response.json(await simulations.list(AdminSimulationQuery.parse(request.query)));
     },
+    async get(request: Request, response: Response) {
+      response.json(await simulations.get(simulationId(request)));
+    },
     async create(request: Request, response: Response) {
       response.status(201).json(await simulations.save(null, SimulationInput.parse(request.body)));
     },

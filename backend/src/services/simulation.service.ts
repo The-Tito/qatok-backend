@@ -80,6 +80,10 @@ export function createSimulationService(deps: {
   return {
     list: simulations.list,
 
+    async get(id: string) {
+      return (await find(id)).simulation;
+    },
+
     save(id: string | null, input: z.output<typeof SimulationInput>) {
       const simulationId = id ?? randomUUID();
       return inTransaction(pool, async (client) => {

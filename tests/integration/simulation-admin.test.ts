@@ -232,6 +232,24 @@ describe('simulation administration API', () => {
       title: 'Actualizar escenario',
       status: 'DRAFT',
     });
+    const single = await admin()
+      .get(path + '/' + id)
+      .set('Authorization', adminToken);
+    expect(AdminSimulation.parse(single.body)).toEqual(edited.body);
+    expect(
+      (
+        await admin()
+          .get(path + '/' + randomUUID())
+          .set('Authorization', adminToken)
+      ).body.error.code,
+    ).toBe('NOT_FOUND');
+    expect(
+      (
+        await admin()
+          .get(path + '/' + id)
+          .set('Authorization', studentToken)
+      ).status,
+    ).toBe(403);
     const list = await admin()
       .get(path)
       .set('Authorization', adminToken)
