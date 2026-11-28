@@ -1,25 +1,33 @@
 {
   "name": "qatok",
-  "version": "2.0.0-dev",
+  "version": "2.0.0",
   "private": true,
   "description": "QATO'K: simulaciones de habilidades profesionales sobre PostgreSQL, MongoDB y Neo4j",
   "workspaces": [
     "shared",
-    "backend",
-    "frontend"
+    "backend"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "lint": "eslint .",
-    "format": "prettier --write \"{shared,backend,frontend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
-    "format:check": "prettier --check \"{shared,backend,frontend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
+    "format": "prettier --write \"{shared,backend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
+    "format:check": "prettier --check \"{shared,backend,tests}/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,mjs,mts}\"",
     "typecheck": "npm run typecheck --workspaces --if-present && tsc --noEmit -p tests",
     "test": "vitest run",
     "validar:dataset": "python3 database/seed/validar_dataset.py",
+    "db:relational:reset": "node database/relational/ejecutar.mjs",
+    "db:relational:migrar": "node database/relational/ejecutar.mjs migrar",
+    "db:sync:reactivar": "npm run db:sync:reactivar -w @qatok/backend --",
+    "db:sync:pendiente": "npm run db:sync:pendiente -w @qatok/backend --",
+    "db:document:reset": "node database/document/ejecutar.mjs",
+    "db:graph:generar": "node database/graph/data/generar-carga.mjs",
+    "db:graph:comprobar": "node database/graph/data/generar-carga.mjs --comprobar",
+    "db:graph:reset": "node database/graph/ejecutar.mjs reset",
+    "db:graph:probar": "node database/graph/ejecutar.mjs probar",
     "verificar:modelo": "python3 scripts/verificar.py",
-    "verificar": "npm run lint && npm run format:check && npm run typecheck && npm run test:unit && npm run validar:dataset && npm run verificar:modelo",
+    "verificar": "npm run lint && npm run format:check && npm run typecheck && npm run test:unit && npm run validar:dataset && npm run db:graph:comprobar && npm run verificar:modelo",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v",
@@ -28,7 +36,9 @@
     "dev:api": "npm run dev -w @qatok/backend",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
-    "setup:env": "node scripts/crear-env.mjs"
+    "setup:env": "node scripts/crear-env.mjs",
+    "reconciliar": "npm run reconciliar -w @qatok/backend --",
+    "grafo:reconstruir": "npm run reconciliar -w @qatok/backend -- --rebuild-graph"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

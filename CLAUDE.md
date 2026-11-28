@@ -18,7 +18,7 @@ El repositorio está en la etapa del **proyecto final**: una sola aplicación co
 ## Arquitectura vigente (DEC-24, KG v1.2)
 
 ```
-Next.js (frontend/) ──HTTP──► API REST Express + TS (backend/) ──► PostgreSQL · MongoDB · Neo4j
+Next.js (qatok-frontend) ──HTTP──► API REST Express + TS (backend/) ──► PostgreSQL · MongoDB · Neo4j
                               controllers → services → repositories/{relational,document,graph}
 ```
 
@@ -36,15 +36,24 @@ Reglas que no se rompen:
 - **La interfaz solo consume la API** (guía §7.6): Next.js no importa drivers de bases (ESLint lo bloquea), no usa Route Handlers ni Server Actions como backend y no tiene credenciales de bases.
 - El SQL, el MQL y el Cypher solo viven en `backend/src/repositories/` y en `database/`, siempre parametrizados.
 
+## Repositorios del proyecto
+
+| Repo | Qué tiene |
+|---|---|
+| **The-Tito/qatok-backend** (este) | API, `shared/`, `database/`, pruebas, `docs/` (lo que se evalúa) y `context/` |
+| **The-Tito/qatok-frontend** | Interfaz Next.js. Solo consume la API |
+
+- `shared/` vive **aquí** y es la fuente única. El frontend tiene una **copia de solo lectura** en `src/shared/` (`npm run sync:shared` la actualiza desde `../qatok-backend`; su CI falla si queda desactualizada). Todo cambio de esquemas o catálogos se hace aquí primero.
+- Antes (hasta 2026-11-19) todo vivía en el monorepo `lsprz2773/BDLN-U3`, ahora archivado. Los issues se recrearon aquí y en el frontend.
+
 ## Estructura del repositorio
 
 | Ruta | Qué hay |
 |---|---|
 | `backend/` | API (Express 5 + TypeScript). `GET /api/health` es la plantilla de capas a copiar |
-| `frontend/` | Interfaz Next.js (la arma el responsable del frontend; ver `frontend/README.md`) |
-| `shared/` | Esquemas zod y catálogos compartidos: **fuente única** de tipos para backend y frontend |
+| `shared/` | Esquemas zod y catálogos compartidos: **fuente única** de tipos para backend y frontend (el frontend tiene una copia sincronizada) |
 | `database/` | `relational/`, `document/`, `graph/` (scripts de cada base, con dueño) y `seed/` (datos de prueba comunes) |
-| `tests/` | `unit/` (sin bases, repositorios falsos), `integration/` (contra Docker), `e2e/` |
+| `tests/` | `unit/` (sin bases, repositorios falsos), `integration/` (contra Docker) |
 | `docs/` | Lo que **evalúa el profesor** (E1–E8): modelos, API, pruebas |
 | `context/` | Lo que ayuda al equipo a **trabajar**: plan, convenciones, guía, antecedentes |
 | `entregables/`, `verificacion/`, `presentacion/`, `PLAN.md`, `PROGRESS.md` | **Actividad anterior** (modelo lógico de grafos, v1.1). Antecedente: no se edita salvo para corregir |

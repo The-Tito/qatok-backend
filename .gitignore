@@ -4,6 +4,12 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# Exportaciones locales de la actividad anterior
+/entregables/docx/
+/presentacion/*.pdf
+/presentacion/*.docx
+/presentacion/*.pptx
+
 # Configuración local y credenciales (solo se versiona .env.example)
 .env
 .env.*
@@ -12,9 +18,6 @@ coverage/
 # Pruebas e2e
 playwright-report/
 test-results/
-
-# Runner Java de Neo4j (actividad anterior)
-database/graph/runner/target/
 
 # Sistema y editores
 .DS_Store

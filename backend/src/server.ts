@@ -4,7 +4,7 @@
  */
 import { crearApp } from './app.js';
 import { cargarEntorno } from './config/entorno.js';
-import { crearControladores } from './contenedor.js';
+import { crearControladores, crearSincronizacion } from './contenedor.js';
 import { cerrarConexiones, crearConexiones } from './db/conexiones.js';
 import { crearLogger } from './lib/logger.js';
 import { crearRutas } from './routes/index.js';
@@ -12,20 +12,29 @@ import { crearRutas } from './routes/index.js';
 const entorno = cargarEntorno();
 const logger = crearLogger(entorno);
 const conexiones = crearConexiones(entorno);
-const controladores = crearControladores(conexiones, entorno, logger);
+const sincronizacion = crearSincronizacion(conexiones, logger);
+const controladores = crearControladores(conexiones, entorno, logger, sincronizacion);
 const app = crearApp({ rutas: crearRutas(controladores), logger, corsOrigen: entorno.CORS_ORIGEN });
 
 const servidor = app.listen(entorno.API_PORT, async () => {
+  sincronizacion.iniciar();
   logger.info(`API escuchando en http://localhost:${entorno.API_PORT}/api`);
-  const respuesta = await fetch(`http://localhost:${entorno.API_PORT}/api/health`);
-  logger.info({ salud: await respuesta.json() }, 'estado de las bases al arrancar');
+  try {
+    const respuesta = await fetch(`http://localhost:${entorno.API_PORT}/api/health`);
+    logger.info({ salud: await respuesta.json() }, 'estado de las bases al arrancar');
+  } catch {
+    logger.warn('No se pudo consultar el estado de las bases al arrancar.');
+  }
 });
 
+let apagando = false;
 async function apagar(senal: string) {
+  if (apagando) return;
+  apagando = true;
   logger.info(`${senal} recibido: cerrando servidor y conexiones`);
-  servidor.close();
+  const servidorCerrado = new Promise<void>((resolve) => servidor.close(() => resolve()));
+  await Promise.all([servidorCerrado, sincronizacion.detener()]);
   await cerrarConexiones(conexiones);
-  process.exit(0);
 }
 process.on('SIGINT', () => void apagar('SIGINT'));
 process.on('SIGTERM', () => void apagar('SIGTERM'));

@@ -1,57 +1,61 @@
-# Neo4j — implementación y pruebas del modelo de QATO'K
+# Neo4j — proyección del grafo de QATO'K (dueño: A)
 
-> **Estado (fase 0):** estos scripts vienen de la actividad anterior y se movieron tal cual desde `neo4j/`. En la fase 1, el perfil A los recorta a la matriz v2 (`docs/modelos/matriz-propiedad.md`: 9 etiquetas, sin textos), los separa en `schema/`, `queries/` y `tests/`, y los ejecuta contra el Neo4j de Docker. Mientras tanto describen el modelo **anterior**.
+Neo4j es una **proyección para recorridos** (C-01..C-05). Cada nodo copiado lleva solo su id y las propiedades que filtran las consultas (`docs/modelos/matriz-propiedad.md` §3). Neo4j es dueño únicamente de lo derivado: `Progreso` y `DEMUESTRA`.
 
-Scripts Cypher que llevan el modelo lógico (entregables 1–6) a Neo4j: restricciones, índices, nodos y relaciones de ejemplo, pruebas de humo y limpieza. Se probaron sobre **Neo4j 5.26 LTS, edición Community** (embebida): **76 pruebas, 0 fallos** (`resultado-pruebas.txt`).
+- **9 etiquetas:** Usuario, Simulacion, Habilidad, Paso, Opcion, Intento, Respuesta, Progreso, Evidencia.
+- **13 tipos de relación (14 patrones):** REALIZA, TIENE, CONTIENE, DESARROLLA, OFRECE, GENERA, CONDUCE_A, REGISTRA, CORRESPONDE_A (Respuesta→Paso y Progreso→Habilidad), SELECCIONA, TIENE_PROGRESO, PRODUCE, DEMUESTRA.
+- **Fuera del grafo:** Consecuencia, Retroalimentacion y Comparticion (R06, R11, R17). La retroalimentación queda como `Respuesta.tipo_retroalimentacion`. El correo y los textos no se copian.
 
-## Orden de ejecución
+## Estructura
 
-| # | Archivo | Qué hace |
-|---|---|---|
-| 1 | `01-restricciones.cypher` | 15 restricciones de unicidad: los `id_*` de las 12 etiquetas, `Usuario.correo`, `Habilidad.nombre`, `Comparticion.token` (RI-01, RI-02, RI-03, RI-15) |
-| — | `01b-restricciones-enterprise.cypher` | Restricciones de existencia y de tipo (RI-04, RI-18, RI-24). **Solo para Neo4j Enterprise**: no se ejecuta en Community, y las pruebas comprueban que Community las rechaza |
-| 2 | `02-indices.cypher` | 9 índices pedidos por las consultas y reglas (más los 15 que ya crean las restricciones) |
-| 3 | `03-nodos-ejemplo.cypher` | 51 nodos de ejemplo de las 12 etiquetas |
-| 4 | `04-relaciones-ejemplo.cypher` | 71 relaciones de los 17 tipos de patrón (R01–R17) |
-| 5 | `05-pruebas-humo.cypher` | Pruebas de humo: esquema, datos, integridad, consultas C-01..C-05 y escrituras validadas |
-| 6 | `06-limpieza.cypher` | Retira todos los datos de ejemplo y comprueba que el esquema sigue intacto |
+| Carpeta / archivo | Qué hay |
+|---|---|
+| `schema/01-restricciones.cypher` | 11 restricciones de unicidad: los 9 `id_*`, `Habilidad.nombre` y la clave compuesta (`id_usuario`, `id_habilidad`) de `Progreso` |
+| `schema/02-indices.cypher` | Los 4 índices que piden C-01..C-05 |
+| `data/generar-carga.mjs` | Genera `03-carga.cypher` desde `database/seed/dataset.json` |
+| `data/03-carga.cypher` | **Generado** (no se edita): `MERGE` por id de nodos y relaciones. Sin la simulación en BORRADOR |
+| `data/04-derivados.cypher` | `DEMUESTRA` (RI-20) y `Progreso` (fórmula DEC-25, PROPUESTA para P-03), recalculados desde cero |
+| `queries/C-0N-*.cypher` | C-01..C-05 parametrizadas según el contrato F3a (`$idUsuario`, `$limite`, `$idIntento`, `$idHabilidad`). Las ejecuta el repositorio `backend/src/repositories/graph/` |
+| `eventos/<TIPO>.cypher` | Efecto en el grafo de cada evento de sincronización (matriz §5): MERGE por id, idempotente, en una transacción. Una sentencia con `ok` = false revierte y el evento se reintenta. Los aplica `backend/src/repositories/graph/sincronizacion.repository.ts` |
+| `tests/01..03-*.cypher` | Pruebas de esquema (A), datos (B) e integridad (C) |
+| `tests/esperados.mjs` | Resultados esperados de C-01..C-05 con el dataset |
+| `ejecutar.mjs` | Ejecutor con `neo4j-driver` y `.env`: `reset` y `probar` |
 
-## Cómo ejecutarlo
-
-**Opción A — automática (Java 21 + Maven):**
+## Comandos
 
 ```bash
-database/graph/ejecutar.sh
+npm run db:up               # Neo4j en Docker (bolt :7688, http :7475)
+npm run db:graph:reset      # vacía Neo4j (datos, restricciones, índices) y aplica schema/01, 02, data/03, 04
+npm run db:graph:probar     # reset + 44 pruebas; escribe docs/pruebas/neo4j-<fecha>.md; código 1 si algo falla
+npm run db:graph:generar    # regenera data/03-carga.cypher después de cambiar dataset.json
+npm run test:integration    # incluye tests/integration/grafo.test.ts (las mismas pruebas)
 ```
 
-Levanta un Neo4j Community embebido en un directorio temporal, ejecuta los seis scripts en orden, imprime cada resultado y termina con `=== RESUMEN: N pruebas, M fallos ===` (código de salida 1 si algo falla). No necesita un servidor instalado. El ejecutor está en `runner/`.
+`npm run verificar` incluye `db:graph:comprobar`, que falla si `03-carga.cypher` no corresponde al dataset.
 
-**Opción B — Neo4j Desktop, Aura o un servidor propio:** pegar cada script en Neo4j Browser (o `cypher-shell -f archivo.cypher`) en el orden de la tabla.
-- En `05-pruebas-humo.cypher`, toda fila con `ok = false` es un fallo.
-- Las sentencias precedidas por `// ESPERA_ERROR` **deben** fallar: prueban que la base rechaza un duplicado o una restricción exclusiva de Enterprise.
-- **En Neo4j Desktop usar `05-desktop-pruebas.cypher`.** Desktop detiene el script en el primer error y sus instancias locales son Enterprise, así que esta versión quita las sentencias que deben fallar (A3, A4 y C15) y en su lugar muestra la edición del servidor. Se ejecuta completa y todas las filas deben dar `ok = true`.
+**Para verlo en Neo4j Browser** (http://localhost:7475, credenciales de `.env`): pegar en orden `schema/01`, `schema/02`, `data/03` y `data/04`. Después, por ejemplo, `MATCH (n) RETURN n`. Los scripts son idempotentes: ejecutarlos dos veces da el mismo grafo.
 
-## Datos de ejemplo por consulta
+## Convenciones de los scripts
 
-Todos los identificadores empiezan por `e0000000-0000-4000-8000-`, así `06-limpieza.cypher` borra solo estos datos. Son ficticios.
+- Cada sentencia termina en `;` al final de la línea. El ejecutor corta ahí y quita las líneas `//`.
+- En `tests/`, cada sentencia devuelve filas con `prueba`, `ok` y `detalle`. Una fila con `ok = false` es un fallo, y **una sentencia sin filas también**. Para que siempre haya una fila, se agrega con `WITH count(…) AS violaciones` antes del `RETURN`, o con subconsultas `COUNT {}`.
+- Una sentencia cuyo comentario empieza por `ESPERA_ERROR` debe ser rechazada por la base (por ejemplo, un duplicado).
+- `SHOW CONSTRAINTS` y `SHOW INDEXES` no admiten `WITH`: se agrega directamente en el `RETURN`.
 
-| Consulta | Datos que la ejercitan | Resultado esperado (y comprobado) |
-|---|---|---|
-| C-01 Simulaciones según el progreso | Ana tiene progreso en 3 habilidades. Bruno es nuevo, sin progreso. Hay 2 simulaciones PUBLICADAS y 1 en BORRADOR | **Ana:** 1.º «Tres entregas para mañana» (Gestión del tiempo 40 < 60), 2.º «Cliente molesto por un retraso» (Resolución de conflictos 55 < 60). **Bruno:** las 2 publicadas. La de BORRADOR nunca aparece |
-| C-02 Fortalezas y áreas de mejora | Retroalimentación ACIERTO, PARCIAL y ERROR en 5 respuestas de Ana | Comunicación efectiva = FORTALEZA (78 ≥ 75). Resolución de conflictos y Gestión del tiempo = ÁREA DE MEJORA. Gestión del tiempo no tiene `nivel_objetivo` y usa el nivel esperado (60) como respaldo |
-| C-03 Recorrido de decisiones | 2 intentos de Ana en «Cliente molesto…» con ramas distintas, que terminan en opciones terminales | 4 decisiones ordenadas por intento y `secuencia`, cada una con su consecuencia y su retroalimentación |
-| C-04 Evidencias compartibles | 1 evidencia PRIVADA de Ana con 3 enlaces: vigente, revocado y expirado | Solo aparece el enlace vigente |
-| C-05 Evolución de una habilidad | 3 intentos completados y 1 EN_CURSO | Serie 45 → 92 → 65 en orden de fecha. El intento en curso no cuenta. Nivel consolidado: 78 |
+## Datos esperados (dataset común)
 
-## Qué comprueban las pruebas de humo
-
-| Grupo | Pruebas |
+| Concepto | Valor y derivación |
 |---|---|
-| A. Esquema | Las 15 restricciones y los 9 índices existen y están en línea. Community rechaza las restricciones de existencia y de tipo (confirma DEC-12) |
-| B. Datos | Conteo de nodos por etiqueta y de relaciones por patrón (17). Las propiedades opcionales sin valor no se guardan |
-| C. Integridad | Relaciones obligatorias por entidad (entregable 5) y reglas RI-05..RI-08, RI-10..RI-14, RI-16..RI-18, RI-20, RI-23, RI-24. Tipos de dato en Neo4j. Rechazo de duplicados por las restricciones de unicidad |
-| D. Consultas | C-01..C-05 **copiadas literalmente del entregable 1**, más la búsqueda por texto completo (RF-02) |
-| E. Escrituras validadas | El Cypher de referencia del entregable 4 rechaza una respuesta inconsistente (RI-10), crea una válida con `secuencia` 1 (RI-16), `MERGE` no duplica DESARROLLA (RI-08) y no se inician intentos de una simulación en BORRADOR (RI-19) |
-| Limpieza | Quedan 0 nodos y 0 relaciones, y las 15 restricciones y los 9 índices se conservan |
+| Grafo | 34 nodos y 53 relaciones (la simulación 0303 en BORRADOR no se proyecta) |
+| Progreso de Ana | Comunicación efectiva = (0.6·92.5 + 0.3·40) / 0.9 = **75**. Resolución de conflictos = **92.5** (último intento de 0301: 0701). Gestión del tiempo = **40** (0702) |
+| C-01 | Ana: solo «Tres entregas para mañana» (Gestión del tiempo 40 < 60; prioridad 0.7·20 = 14). Bruno, sin progreso: 0301 (0.6·70 + 0.4·60 = 66) y 0302 (0.7·60 + 0.3·50 = 57); con `limite` 1, solo 0301 |
+| C-02 | Ana: Resolución de conflictos y Comunicación efectiva = FORTALEZA (75 ≥ 75). Gestión del tiempo = ÁREA DE MEJORA (sin `nivel_objetivo`, usa el nivel esperado 60) |
+| C-03 | Ana, intento 0701: 2 decisiones (ACIERTO, ACIERTO). Intento 0704 EN_CURSO: sin decisiones. Bruno no ve el intento de Ana (sin filas) |
+| C-04 | La evidencia 1101 demuestra Comunicación efectiva y Resolución de conflictos, no Gestión del tiempo |
+| C-05 | Ana, Comunicación efectiva: 37.5 → 92.5 → 40 y nivel 75. El intento EN_CURSO no cuenta. Bruno: sin nivel ni puntos. Habilidad inexistente: sin filas |
 
-Las pruebas se validaron también **al revés**: se introdujeron errores a propósito en copias de los datos (una opción sin consecuencia, una ruta que cruza simulaciones, una opción de otro paso, una secuencia repetida, una habilidad demostrada que la simulación no desarrolla, niveles distintos) y las pruebas correspondientes fallaron. Ver `verificacion/09-neo4j.md`.
+Las pruebas se validaron también **al revés**: con errores introducidos a propósito (una opción de otro paso, una secuencia repetida, un `DEMUESTRA` de más, un nivel alterado, un correo copiado, una ruta entre simulaciones, un intento sin simulación, un tipo de retroalimentación fuera de catálogo), falló la prueba correspondiente en cada caso.
+
+## Antecedente
+
+Los scripts de la actividad anterior (12 etiquetas, runner Java embebido) se retiraron en backend #4. Su verificación sigue documentada en `verificacion/09-neo4j.md` y se pueden consultar en el historial de git.

@@ -34,7 +34,7 @@ Esta carpeta reúne lo que el equipo necesita para **trabajar**: la guía del pr
 | `convenciones.md` | Reglas comunes que todos siguen |
 | `github.md` | Configuración de GitHub: rama por defecto, CI y por qué no hay protección de ramas |
 | `guia/` | Guía del proyecto final del profesor |
-| `antecedentes/Reporte_Auditoria_BDLN-U3.pdf` | Auditoría v1 del estado del repo |
+| `antecedentes/Reporte_Auditoria_BDLN-U3.pdf` | Auditoría v1 del estado del repo (cuando era el monorepo BDLN-U3) |
 | `antecedentes/auditoria-v2.md` | Auditoría v2: confirma y corrige la v1 |
 | `antecedentes/plan-reparto.md` | Por qué se eligió el reparto "dueño de base + dueño de flujo" (alternativas y pre-mortem) |
 
@@ -45,4 +45,4 @@ Esta carpeta reúne lo que el equipo necesita para **trabajar**: la guía del pr
 | `docs/KG.json` | Grafo de conocimiento del proyecto: fuente de verdad del dominio (lo valida `scripts/verificar.py`) |
 | `docs/decisiones-modelado.md` | Decisiones DEC-01 en adelante |
 | `entregables/`, `verificacion/`, `presentacion/` | Actividad anterior (modelo lógico de grafos). Es antecedente, no se edita salvo para corregir |
-| `database/graph/` | Scripts Cypher de la actividad anterior (modelo previo a la matriz v2); A los adapta en la fase 1 |
+| `database/graph/` | Proyección del grafo según la matriz v2: esquema, carga desde el dataset, C-01..C-05 y pruebas (`npm run db:graph:probar`) |

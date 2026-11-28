@@ -1,0 +1,13 @@
+services:
+  postgres:
+    container_name: !reset null
+    ports: !override
+      - '127.0.0.1:${POSTGRES_PORT:?}:5432'
+  mongo:
+    container_name: !reset null
+    ports: !override
+      - '127.0.0.1:${MONGO_PORT:?}:27017'
+  neo4j:
+    container_name: !reset null
+    ports: !override
+      - '127.0.0.1:${NEO4J_BOLT_PORT:?}:7687'

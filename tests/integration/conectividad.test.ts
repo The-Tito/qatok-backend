@@ -32,6 +32,12 @@ describe('conectividad con las 3 bases', () => {
   it('GET /api/health → 200 OK con las 3 bases disponibles', async () => {
     const r = await request(appConEntorno()).get('/api/health');
     const salud = Salud.parse(r.body);
+    const { relacional: postgres, documental: mongo, grafo: neo4j } = salud.bases;
+    const engines = { PostgreSQL: postgres, MongoDB: mongo, Neo4j: neo4j };
+    for (const [engine, { ok, latencia_ms: latencyMs }] of Object.entries(engines)) {
+      process.stdout.write(`Conectividad ${engine}: ${ok ? 'OK' : 'FALLA'} (${latencyMs} ms)\n`);
+    }
+
     expect(r.status, JSON.stringify(salud)).toBe(200);
     expect(salud.bases).toMatchObject({
       relacional: { ok: true },

@@ -12,7 +12,7 @@
 3. **Todo cambio que deba llegar al grafo nace en PostgreSQL**, en la misma transacción que su evento (outbox). Hay un solo mecanismo de sincronización.
 4. **Neo4j es una proyección para recorrer conexiones.** Guarda ids, relaciones y solo las propiedades que C-01 a C-05 usan para filtrar u ordenar. Es dueño de dos datos derivados: `Progreso` y `DEMUESTRA`.
 5. **El contenido publicado es inmutable.** Solo se edita en BORRADOR. Por eso la estructura copiada al grafo nunca se desfasa.
-6. **Una base por operación siempre que se pueda.** Solo 2 operaciones escriben en dos bases, y su peor caso es un huérfano inofensivo (§4).
+6. **Una base por operación siempre que se pueda.** Las operaciones que escriben en PostgreSQL y MongoDB documentan qué queda confirmado y cómo se recupera una escritura parcial (§4).
 
 ## 2. Responsabilidad de cada base
 
@@ -39,7 +39,7 @@ Leyenda: **●** dueña · **◐** copia parcial (solo los campos listados) · �
 | E01 Usuario | ● `usuario` (nombre, correo normalizado único, contrasena_hash, fecha_registro, estado, **rol**) | — | ◐ `id_usuario` | Ancla de C-01 a C-05. El correo **no** se copia (RF-09) |
 | E02 Simulacion — metadatos | ● `simulacion` (titulo, descripcion, dificultad, duracion_estimada, estado) | — | ◐ `id_simulacion`, `titulo`, `estado` | `estado` → C-01; `titulo` → resultados de C-01, C-04 y C-05 |
 | E02 Simulacion — contenido | — | ● `contenidos_simulacion` (un documento por simulación) | — | — |
-| E03 Habilidad | ● `habilidad` (nombre único, descripcion, categoria, nivel_objetivo) | — | ◐ `id_habilidad`, `nombre`, `nivel_objetivo` | `nombre` → C-04 y C-05; `nivel_objetivo` → C-02 |
+| E03 Habilidad | ● `habilidad` (nombre único, descripcion, categoria, nivel_objetivo, tipo_visual) | — | ◐ `id_habilidad`, `nombre`, `nivel_objetivo` | `nombre` → C-04 y C-05; `nivel_objetivo` → C-02 |
 | R04 DESARROLLA | ● `simulacion_habilidad` (PK compuesta = RI-08; peso, nivel_esperado) | — | ◐ relación con `peso`, `nivel_esperado` | C-01, C-02, C-05 |
 | E04 Paso | — | ● anidado: `pasos[]` (titulo, descripcion, orden, tipo, **contexto según el tipo**) | ◐ `id_paso`, `orden` + `CONTIENE` | Ramificación; orden en C-03 |
 | E05 Opcion | — | ● anidada: `pasos[].opciones[]` (descripcion, valoracion, id_paso_siguiente) | ◐ `id_opcion` + `OFRECE`, `CONDUCE_A` | Ramificación; C-03 |
@@ -91,14 +91,15 @@ Cada `tipo` de paso tiene un `contexto` distinto (CORREO: remitente, asunto y cu
 | Crear, editar o eliminar habilidad (F1, admin, B) | PG + evento `HABILIDAD_GUARDADA` / `HABILIDAD_ELIMINADA` (solo si ninguna simulación la usa: FK RESTRICT) | Revierte | `201` / `200` / `204` / `409` |
 | Crear simulación (F1, B) | **Solo PG** (`simulacion` en BORRADOR + `simulacion_habilidad`) | Revierte | `201` |
 | Cargar o editar contenido (F1, B) | **Solo Mongo** (reemplaza el documento). Antes verifica en PG que exista y esté en BORRADOR | Nada que compensar | `200` / `409` si está publicada |
-| Publicar (F1, B) | Lee el contenido de Mongo y valida RI-17 y RI-11 → **solo PG**: estado PUBLICADA + evento `SIMULACION_PUBLICADA` con la estructura | Revierte | `200` + `sincronizacion` |
+| Publicar (F1) | Mongo inserta la revisión inmutable de la versión solicitada → PG confirma la referencia, el estado PUBLICADA y `SIMULACION_PUBLICADA` en una transacción | Si falla PG, queda una candidata reutilizable. Si falla Mongo y la copia no se puede confirmar, PG conserva el borrador | `200` + `synchronization` |
 | Desactivar (F1, B) | PG estado INACTIVA + evento `SIMULACION_ESTADO_CAMBIADO` | Revierte | `200` |
 | Eliminar BORRADOR (F1, B) | PG delete → Mongo delete (**2 bases**) | Si falla Mongo: huérfano, lo limpia la reconciliación | `204` |
 | Iniciar intento (F2, C) | PG `intento` (RI-19) + evento `INTENTO_INICIADO` | Revierte | `201` |
 | **Responder un paso** (F2, C) | Lee el contenido de Mongo y valida RI-10 → **solo PG**, en una transacción: `respuesta` (RI-16, RI-22) + cerrar el intento si la opción es terminal (RI-23, puntuación calculada) + eventos `RESPUESTA_REGISTRADA` (y `INTENTO_FINALIZADO`) | Revierte | `201` con consecuencias y retroalimentación (leídas del contenido) + `sincronizacion` |
 | Abandonar intento (F2, C) | PG + evento `INTENTO_FINALIZADO` | Revierte | `200` |
 | Generar evidencia (F3a, A) | 1) Mongo `evidencias` → 2) PG `evidencia` + evento `EVIDENCIA_GENERADA` (**2 bases**) | Si falla PG: se borra el documento (compensación). Si eso también falla, la reconciliación lo limpia | `201` + `sincronizacion` |
-| Cambiar visibilidad o eliminar evidencia (F3a, A) | PG (+ Mongo delete si se elimina) | Igual que eliminar BORRADOR | `200` / `204` |
+| Actualizar evidencia (F3a, A) | PG (título o visibilidad) + `EVIDENCIA_GENERADA` si cambia el título | Revierte | `200` |
+| Eliminar evidencia (F3a, A) | PG + `EVIDENCIA_ELIMINADA` → Mongo elimina la instantánea | Si falla Mongo, la reconciliación limpia la instantánea huérfana | `200` |
 | Compartir y revocar (F3b, B) | Solo PG | Revierte | `201` / `204` |
 | Ver evidencia compartida (F3b, B) | Lectura: PG valida token, estado y vencimiento → Mongo da el contenido | Mongo caído → `503` con el formato de error | `200` / `404` / `410` |
 
@@ -113,14 +114,15 @@ La API nunca afirma que el grafo está al día si el evento no se aplicó.
 ## 5. Sincronización hacia Neo4j (dueño: A; tabla: B)
 
 **Mecanismo:** outbox transaccional con **aplicación inmediata** y reintento.
-1. El servicio escribe el cambio y su evento en la misma transacción de PostgreSQL.
-2. Tras el commit, el servicio intenta aplicar el evento en Neo4j de inmediato. Si lo logra, lo marca `APLICADO`.
-3. Si no lo logra, queda `PENDIENTE`. Un proceso dentro del backend reintenta cada pocos segundos, tomando los eventos con `FOR UPDATE SKIP LOCKED` en orden de `creado_en`. Hace hasta 5 intentos con espera creciente y después lo marca `FALLIDO`.
-4. Todo efecto en el grafo es un `MERGE` por id: **aplicar dos veces da lo mismo**. El progreso se recalcula desde cero, nunca se incrementa.
+1. El servicio escribe el cambio y encola los eventos antes de confirmar PostgreSQL. Un bloqueo transaccional común de productores preserva el orden de confirmación en `orden_cola`.
+2. Tras el commit, el envío inmediato y el temporizador consumen la primera fila sin aplicar. Un bloqueo transaccional de consumidor evita que dos instancias avancen la cola al mismo tiempo.
+3. Cada fallo guarda el número de intentos y la siguiente fecha. Las esperas son de 2, 4, 8 y 16 segundos. Si el quinto intento falla, la fila pasa a `FALLIDO` y la cola se pausa hasta reactivarla.
+4. Si el grafo confirmó un evento y no se pudo registrar `APLICADO`, se conserva la respuesta `PENDIENTE` y se reintenta la primera fila. Los efectos del evento se pueden volver a aplicar y el progreso se recalcula desde los intentos.
 
 ```sql
 CREATE TABLE evento_sincronizacion (
   id_evento     UUID PRIMARY KEY,
+  orden_cola    BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE,
   tipo          VARCHAR(40)  NOT NULL,
   id_entidad    UUID         NOT NULL,
   payload       JSONB        NOT NULL,
@@ -129,10 +131,14 @@ CREATE TABLE evento_sincronizacion (
   intentos      INTEGER      NOT NULL DEFAULT 0,
   ultimo_error  TEXT         NULL,
   creado_en     TIMESTAMPTZ  NOT NULL DEFAULT now(),
+  proximo_intento TIMESTAMPTZ NULL,
   aplicado_en   TIMESTAMPTZ  NULL
 );
-CREATE INDEX ix_eventos_pendientes ON evento_sincronizacion (estado, creado_en);
+CREATE INDEX ix_evento_sin_aplicar ON evento_sincronizacion (orden_cola)
+  WHERE estado <> 'APLICADO';
 ```
+
+El DDL efectivo y la migración están en [database/relational/schema](../../database/relational/schema/). El comando de reactivación se describe en la [guía de bases](../../database/README.md#cola-de-sincronización).
 
 | Evento | Lo emite | Efecto en Neo4j |
 |---|---|---|
@@ -150,19 +156,26 @@ CREATE INDEX ix_eventos_pendientes ON evento_sincronizacion (estado, creado_en);
 
 ## 6. Reconciliación y reconstrucción (dueño: A)
 
-`npm run reconciliar` reporta lo que encuentra y lo que repara:
+Desde la raíz del backend:
+
+| Comando | Acción |
+|---|---|
+| `npm run reconciliar` | Diagnóstico de solo lectura y salida JSON. Con escrituras concurrentes puede observar diferencias transitorias. |
+| `npm run reconciliar -- --apply` | Reparación local. Intenta reactivar una vez la cabeza fallida y tramita hasta un lote con el consumidor existente. Luego compara y repara lo que sea seguro. |
+| `npm run grafo:reconstruir` | Previsualiza la reconstrucción desde el estado actual de PostgreSQL y MongoDB. |
+| `npm run grafo:reconstruir -- --apply` | Sustituye la proyección de QATO'K en una transacción de Neo4j. Reinstala restricciones e índices si faltan. |
 
 | Revisión | Detecta | Repara |
 |---|---|---|
-| PG ↔ Neo4j por etiqueta | Ids que faltan o sobran en el grafo | Reemite el evento / borra el nodo |
-| Eventos `FALLIDO` | Eventos sin aplicar | Los reintenta; reporta los que siguen fallando |
-| Mongo ↔ PG | Contenidos y evidencias sin registro en PG con más de 10 minutos | Los borra |
-| Referencias entre bases | Respuestas cuyo paso u opción no existe en el contenido; simulaciones PUBLICADA sin contenido | Solo reporta (indica un error de programación) |
-| Progreso | `nivel_actual` distinto del recálculo | Lo recalcula |
+| PostgreSQL/MongoDB ↔ Neo4j | IDs y relaciones faltantes, sobrantes o con propiedades distintas | Corrige la proyección a partir de las bases dueñas y verifica el resultado antes de confirmar Neo4j. |
+| Outbox | Eventos pendientes y fallidos, en orden | Con `--apply` retoma la cabeza una vez y respeta el orden, el número de intentos y las pausas vigentes. Mientras queden eventos sin aplicar, difiere toda reparación directa del grafo. |
+| MongoDB ↔ PostgreSQL | Borradores, revisiones candidatas e instantáneas sin registro o referencia | Retira candidatas e instantáneas sin referencia de al menos 10 minutos. Para borradores sin fecha, exige dos observaciones del mismo contenido con al menos 10 minutos de diferencia. |
+| Referencias entre bases | Revisión publicada ausente o inválida, respuesta con paso u opción incorrectos, evidencia sin instantánea | Reporta la diferencia para revisión. Las referencias de la proyección deben estar completas antes de cambiar el grafo. |
+| Progreso | Nivel, fecha o relaciones distintos del recálculo DEC-25 | Actualiza el progreso derivado del último intento completado por simulación. Ordena por fecha de fin e ID para resolver empates. |
 
-`npm run grafo:reconstruir` es el último recurso: vacía el grafo y lo reconstruye desde PostgreSQL y MongoDB.
+Las reparaciones están limitadas a bases locales de desarrollo. Para reparar, detén la API. El comando toma bloqueos de PostgreSQL sin esperar y, si hay una transacción incompatible o un consumidor activo, termina sin entrar a la reparación. Los bloqueos coordinan la reparación con la publicación, las evidencias y el outbox. Las escrituras en Neo4j y MongoDB se confirman por separado y el comando se puede volver a ejecutar.
 
-La reconciliación es la evidencia de las pruebas de **consistencia** y **errores** de la guía (§9).
+El informe termina con código 0 si no quedan diferencias, 2 si quedan diferencias o eventos sin aplicar y 1 si la operación falla. Si el mismo evento bloquea el outbox después del reintento, corrige su causa y vuelve a ejecutar el comando. La reconstrucción conserva el orden del outbox y también exige la cola al día. No usa el dataset de desarrollo como fuente.
 
 ## 7. Decisiones que se registran como DEC-24 (paso 0.10)
 
