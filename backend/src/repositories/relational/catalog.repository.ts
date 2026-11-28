@@ -25,6 +25,14 @@ export const summary = `jsonb_build_object(
 
 export function createCatalogRepository(pool: Pool) {
   return {
+    async skillRef(id: string) {
+      const { rows } = await pool.query<{ id: string; name: string; target: number | null }>(
+        'SELECT id_habilidad AS id, nombre AS name, nivel_objetivo AS target FROM habilidad WHERE id_habilidad = $1',
+        [id],
+      );
+      return rows[0] ?? null;
+    },
+
     async list(filters: z.output<typeof CatalogQuery>) {
       const { rows } = await pool.query<{ items: SimulationSummary[]; total: number }>(
         `WITH matching AS (
