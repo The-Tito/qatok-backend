@@ -202,6 +202,7 @@ La guía del proyecto pide siete tipos de prueba de integración (conectividad, 
 
 | Documento | Contenido |
 |---|---|
+| [Propuesta de aplicación (E1)](docs/propuesta.md) | Problema, usuarios, alcance y justificación de las tres bases |
 | [Plan de trabajo](context/plan-trabajo.md) | Perfiles del equipo, fases y tareas |
 | [Cómo trabajamos](context/como-trabajar.md) | Del tablero al merge: el paso a paso del día a día |
 | [Convenciones](context/convenciones.md) | Nombres, identificadores, formatos, reglas de la API y de git |
