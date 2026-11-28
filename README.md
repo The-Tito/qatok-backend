@@ -207,6 +207,7 @@ La guía del proyecto pide siete tipos de prueba de integración (conectividad, 
 | [Cómo trabajamos](context/como-trabajar.md) | Del tablero al merge: el paso a paso del día a día |
 | [Convenciones](context/convenciones.md) | Nombres, identificadores, formatos, reglas de la API y de git |
 | [Matriz de propiedad de datos](docs/modelos/matriz-propiedad.md) | Qué dato vive en qué base y cómo se sincroniza |
+| [Modelo conceptual (E2)](docs/modelos/conceptual.md) · [Diccionario de datos](docs/modelos/diccionario.md) | Entidades, cardinalidades, reglas y enlaces a los tres modelos lógicos |
 | [Análisis de alternativas](docs/modelos/analisis-matriz.md) | Por qué esta arquitectura y no otra |
 | [Contrato de la API](docs/api/contrato-v0.md) | Endpoints, entradas, salidas y errores |
 | [Catálogo de operaciones y consultas (E5)](docs/api/catalogo-operaciones.md) | Casos normales, límite y de error con evidencia de las tres bases |
