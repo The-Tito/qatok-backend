@@ -26,10 +26,14 @@ const stale = () => new ErrorApp('STALE_CONTENT_VERSION', 409, 'The draft versio
 function contentError(error: unknown): never {
   if (error instanceof ErrorContenido) {
     if (error.codigo === 'CONTENIDO_INCOMPLETO') {
-      throw new ErrorApp('INCOMPLETE_CONTENT', 409, 'The draft is incomplete');
+      throw new ErrorApp('INCOMPLETE_CONTENT', 409, 'The draft is incomplete', {
+        ...error.detalle,
+      });
     }
     if (error.codigo === 'RAMIFICACION_INVALIDA') {
-      throw new ErrorApp('INVALID_BRANCHES', 409, 'The draft has invalid branches');
+      throw new ErrorApp('INVALID_BRANCHES', 409, 'The draft has invalid branches', {
+        ...error.detalle,
+      });
     }
     throw new ErrorApp(
       'VALIDATION_ERROR',
@@ -123,7 +127,9 @@ export function createSimulationService(deps: {
         if (!document) throw new ErrorApp('MISSING_CONTENT', 409, 'Draft content is required');
         if (document.version !== version) throw stale();
         if (!draft.skills.length)
-          throw new ErrorApp('INCOMPLETE_CONTENT', 409, 'A skill is required to publish');
+          throw new ErrorApp('INCOMPLETE_CONTENT', 409, 'A skill is required to publish', {
+            reason: 'NO_SKILLS',
+          });
         comprobarPublicable(document.pasos);
         await content.removeUnpublishedRevisions(id, version);
         const revision = await content.guardarRevision(randomUUID(), document);
