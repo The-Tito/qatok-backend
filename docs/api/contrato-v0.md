@@ -143,9 +143,9 @@ Todas estas rutas devuelven `401 UNAUTHENTICATED` sin sesión válida y `403 FOR
 | Método y ruta | Acceso | Bases | Entrada | Respuesta |
 |---|---|---|---|---|
 | `GET /api/profile` | Usuario | PG L + Neo4j L + Mongo L | — | `200 Profile` |
-| `GET /api/profile/skills` | Usuario | Neo4j L | — | `200 { items: ProfileSkill[] }` (C-02) |
+| `GET /api/profile/skills` | Usuario | Neo4j + PG L | — | `200 { items: ProfileSkill[] }` (C-02) |
 | `GET /api/profile/recommendations` | Usuario | Neo4j L + PG L | `limit?` | `200 { items: Recommendation[] }` (C-01) |
-| `GET /api/profile/skills/:skillId/evolution` | Usuario | Neo4j L | — | `200 { skill: { id, name, target }, current_level, points: [{ finished_at, simulation: { id, title }, score, weight }] }` (C-05) |
+| `GET /api/profile/skills/:skillId/evolution` | Usuario | Neo4j + PG L | — | `200 { skill: { id, name, target }, current_level, points: [{ finished_at, simulation: { id, title }, score, weight }] }` (C-05) |
 | `GET /api/profile/attempts/:attemptId/path` | Dueño | PG L + Neo4j L + Mongo L | — | `200 { attempt, decisions, graph_pending }` (C-03) |
 | `POST /api/evidence` | Usuario | PG L + Mongo L/E → PG E + *ev* | `{ attempt_id, title? }` | `201 { evidence, synchronization }` |
 | `GET /api/evidence` | Usuario | PG L (+ Neo4j L con filtro) | `skill_id?`, `limit?`, `offset?` | `200 { items, total }` (C-04 cuando se filtra) |

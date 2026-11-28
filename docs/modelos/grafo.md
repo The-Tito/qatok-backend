@@ -71,7 +71,7 @@ Origen: **PG** = copia de PostgreSQL · **MG** = copia de MongoDB · **N4** = de
 | **Intento** | `id_intento` | String (UUID) | Sí, única | PG `intento` | Parámetro de C-03 |
 | | `estado` | String: EN_CURSO, COMPLETADO, ABANDONADO | Sí | PG | Filtro de C-05 y de `Progreso` |
 | | `fecha_inicio` | DateTime | Sí | PG | Orden de C-03 |
-| | `fecha_fin` | DateTime | Solo si COMPLETADO | PG | C-04, C-05, `Progreso` |
+| | `fecha_fin` | DateTime | Solo si COMPLETADO o ABANDONADO | PG | C-04, C-05, `Progreso` |
 | | `puntuacion` | Float 0..100 | Solo si COMPLETADO | PG | C-05, `Progreso` |
 | **Respuesta** | `id_respuesta` | String (UUID) | Sí, única | PG `respuesta` | — |
 | | `secuencia` | Integer ≥ 1 | Sí, única por intento (RI-16) | PG | Orden de C-03 |
@@ -114,7 +114,7 @@ Cardinalidad: **origen → destino** dice cuántos destinos tiene cada origen; *
 2. **R04 no tiene prueba propia del mínimo 1**: lo garantiza la publicación en PostgreSQL (RI-17). La unicidad por par (RI-08) la da la clave primaria compuesta de `simulacion_habilidad`, y la carga crea la relación con `MERGE`.
 3. **R15 baja de 0..N a 0..1** porque la matriz v2 hace única la columna `evidencia.id_intento` (una evidencia por intento).
 4. **R16 es más estricta que RI-20:** la regla pide un subconjunto de `DESARROLLA`; la derivación crea **todas** las habilidades que desarrolla la simulación, y C14 lo comprueba en los dos sentidos.
-5. **R08 no tiene máximo fijo**: depende de la longitud de la ruta (y queda abierto si se admiten ciclos, P-04).
+5. **R08 en las revisiones actuales** admite hasta una respuesta por paso recorrido. La validación de publicación exige rutas acíclicas y cada revisión admite hasta 30 pasos. [Modelo documental](documental.md#43-revisiones-y-publicación)
 6. Las relaciones redundantes a propósito (R09 frente a R10 + R05, y R14 frente a R01 + R15) se conservan porque dan acceso directo en C-03 y C-04. A cambio exigen RI-10 y RI-14, que comprueban C8, C9 y C13.
 
 ## 5. Restricciones e índices
@@ -151,7 +151,7 @@ Consultas en `database/graph/queries/`, con resultados esperados en `database/gr
 
 ## 7. Qué cambió respecto al modelo de la actividad anterior
 
-El modelo conceptual común sigue siendo el del KG (12 entidades, 17 relaciones). Lo que cambia es qué parte vive en el grafo (D-16 y **D-18**, PRELIMINARES):
+El [modelo conceptual común](conceptual.md) conserva las 12 entidades y 17 relaciones del KG. La proyección implementa el reparto de D-16 y D-18, registrado como preliminar en DEC-24.
 
 | Cambio | Antes (A-03..A-06) | Ahora | Por qué |
 |---|---|---|---|
