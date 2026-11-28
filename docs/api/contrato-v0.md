@@ -51,7 +51,7 @@ Columnas: **Bases** = PG / Mongo / Neo4j que toca (L = lectura, E = escritura, *
 | `GET /api/health` | Público | L en las 3 | `200` si las 3 responden; `503` con el mismo cuerpo si alguna falla | — |
 
 ```json
-{ "estado": "OK", "version": "0.1.0",
+{ "estado": "OK", "version": "2.0.0",
   "bases": { "relacional": { "ok": true, "latencia_ms": 3 },
              "documental": { "ok": true, "latencia_ms": 2 },
              "grafo":      { "ok": true, "latencia_ms": 5 } } }
