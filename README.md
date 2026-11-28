@@ -77,7 +77,7 @@ Los cambios que el grafo necesita nacen en PostgreSQL junto con un evento (**out
 ```bash
 git clone git@github.com:The-Tito/qatok-backend.git
 cd qatok-backend
-git checkout develop
+git switch --detach v2.0.0
 
 npm ci
 npm run setup:env
@@ -108,7 +108,7 @@ curl http://localhost:4000/api/health
 ```json
 {
   "estado": "OK",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "bases": {
     "relacional": { "ok": true, "latencia_ms": 1 },
     "documental": { "ok": true, "latencia_ms": 1 },
@@ -239,7 +239,7 @@ Las reglas completas están en [convenciones §7](context/convenciones.md).
 | 1 | Esquemas, carga reproducible, consultas y pruebas por motor | Implementados para PostgreSQL, MongoDB y Neo4j |
 | 2 | Backend de los flujos y sincronización con el grafo | API REST y reconciliación implementadas |
 | 3 | Interfaz web y flujos integrados | Frontend integrado en `develop` |
-| 4 | Documentación, evidencia y release | E1, E2 y E5 en el [PR #56](https://github.com/The-Tito/qatok-backend/pull/56). Evidencia de E8 recopilada. Release por preparar. |
+| 4 | Documentación, evidencia y release | E1, E2 y E5 integrados en el [PR #56](https://github.com/The-Tito/qatok-backend/pull/56). Evidencia de E8 en el [PR #57](https://github.com/The-Tito/qatok-backend/pull/57). Versión de entrega `v2.0.0`. |
 
 La ejecución local con datos de prueba está documentada. La instalación cruzada entre integrantes y el ensayo de demostración quedan pendientes para después de la entrega.
 
