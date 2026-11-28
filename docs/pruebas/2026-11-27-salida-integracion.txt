@@ -1,0 +1,119 @@
+E8 — Salida de Vitest (resumen normalizado)
+Fecha local: 2026-11-27, America/Mexico_City
+Backend: d843833f6eeae97db01195655dd0e13b72250cb1
+Vitest 5.1.1 | 13 archivos | 88 pruebas aprobadas | 0 fallos | 20.80 s
+Fuente: salida JSON de la ejecución contra las tres bases Docker aisladas.
+
+aplicador-grafo.test.ts (10 pruebas)
+  PASS  construye exactamente el grafo de db:graph:reset (34 nodos, 53 relaciones)
+  PASS  pasa las pruebas de datos e integridad de database/graph/tests
+  PASS  aplicar todos los eventos otra vez no cambia nada (idempotencia)
+  PASS  reaplicar INTENTO_INICIADO no devuelve a EN_CURSO un intento finalizado
+  PASS  un evento antes que sus dependencias lanza EventoNoAplicable y no deja nada
+  PASS  INTENTO_FINALIZADO recalcula el Progreso del usuario (DEC-25)
+  PASS  SIMULACION_ESTADO_CAMBIADO cambia el estado; sin la simulación no es aplicable
+  PASS  EVIDENCIA_GENERADA con un intento de otro usuario no es aplicable (RI-14)
+  PASS  EVIDENCIA_ELIMINADA borra la evidencia y sus DEMUESTRA; repetirla no falla
+  PASS  USUARIO_ELIMINADO borra al usuario con sus intentos, respuestas y progresos
+
+attempt.test.ts (4 pruebas)
+  PASS  starts only one attempt and conceals it from other players
+  PASS  resumes after a response and completes with its score after deactivation
+  PASS  serializes a terminal response and abandonment
+  PASS  rolls back on MongoDB failure and keeps the answer when Neo4j is unavailable
+
+conectividad.test.ts (3 pruebas)
+  PASS  GET /api/health → 200 OK con las 3 bases disponibles
+  PASS  con credenciales de Neo4j incorrectas → 503 DEGRADADO y solo el grafo en falla
+  PASS  con PostgreSQL en un puerto sin servicio → 503 y la falla se reporta en relacional
+
+documental.test.ts (8 pruebas)
+  PASS  carga y lee las revisiones por el ID que guarda PostgreSQL
+  PASS  permite borradores vacíos en simulaciones distintas y rechaza publicarlos
+  PASS  el validador de MongoDB rechaza un contexto de otro tipo
+  PASS  detecta una edición concurrente de la misma versión
+  PASS  rechaza ciclos, pasos inalcanzables y referencias externas
+  PASS  reutiliza la revisión al reintentar y la aísla de cambios en el borrador
+  PASS  impide publicar simultáneamente escenarios con un ID de paso u opción compartido
+  PASS  persiste y elimina una evidencia autocontenida
+
+f1.test.ts (9 pruebas)
+  PASS  registers, normalizes email, rejects duplicates and logs in without exposing credentials
+  PASS  rejects passwords exceeding 72 bytes and role injection
+  PASS  creates a single account for concurrent registrations with the same normalized email
+  PASS  reads and edits the current account, and rejects expired, malformed or deactivated sessions
+  PASS  checks the current admin role and handles skill CRUD and constraints
+  PASS  returns only published simulations and combines literal search, filters and pagination
+  PASS  keeps a confirmed account when graph projection is pending
+  PASS  rolls account creation back if the outbox rejects the event
+  PASS  revokes the session and links even when MongoDB cleanup fails
+
+grafo.test.ts (6 pruebas)
+  PASS  db:graph:reset construye 34 nodos y 53 relaciones
+  PASS  pruebas de esquema en verde
+  PASS  pruebas de datos en verde
+  PASS  pruebas de integridad en verde
+  PASS  pruebas de consultas en verde
+  PASS  tolera el error de coma flotante y el orden de collect(), no otras diferencias
+
+outbox.test.ts (5 pruebas)
+  PASS  un evento revertido no se consume y los huecos no impiden avanzar
+  PASS  el segundo productor espera el commit del primero y el consumo mantiene ese orden
+  PASS  dos consumidores no aplican ni saltan la misma cabeza
+  PASS  persiste el reintento de la respuesta y una cabeza fallida bloquea el cierre
+  PASS  reintenta en Neo4j real después de un fallo de conexión
+
+profile.test.ts (5 pruebas)
+  PASS  integrates account, progress, catalog and snapshot; filters C-04 results by owner
+  PASS  updates a recommendation after an actual F2 response and returns the complete path while projection is pending
+  PASS  creates one immutable snapshot, updates owned metadata and removes document and projection
+  PASS  serves partial profile data when a secondary base is down
+  PASS  compensates a snapshot when PostgreSQL rejects the evidence transaction
+
+reconciliation.test.ts (6 pruebas)
+  PASS  reports drift without writing and repairs the graph and derived progress
+  PASS  deletes aged documents and waits for a second observation of an orphan draft
+  PASS  reports broken references and does not rebuild the incomplete graph
+  PASS  retries the failed head in order and respects a busy consumer
+  PASS  fails fast if publication holds a lock before writing its revision
+  PASS  rebuilds the managed graph from current data rather than the development seed
+
+relacional.test.ts (6 pruebas)
+  PASS  construye las tablas y carga todas las filas del dataset
+  PASS  rechaza datos que violan claves, estados, fechas y rangos
+  PASS  revierte respuesta, cierre y evento, y distingue el orden dentro de una transacción
+  PASS  el catálogo contiene solo las simulaciones publicadas
+  PASS  solo devuelve el intento al dueño y resuelve su revisión publicada
+  PASS  distingue enlaces sin expiración, revocados y vencidos
+
+repositorio-grafo.test.ts (15 pruebas)
+  PASS  C-01 Ana: solo Tres entregas (Gestión del tiempo 40 < 60); ninguna en BORRADOR
+  PASS  C-01 Bruno (sin progreso): las 2 publicadas, nivel 0 en todo
+  PASS  C-01 Bruno con límite 1: solo la de mayor prioridad
+  PASS  C-02 Ana: 2 fortalezas y Gestión del tiempo como área de mejora (respaldo 60)
+  PASS  C-02 Bruno: sin progreso, sin filas
+  PASS  C-03 Ana, intento 0701: 2 decisiones ordenadas por secuencia
+  PASS  C-03 Ana, intento 0704 EN_CURSO: sin decisiones, sin fecha_fin ni puntuación
+  PASS  C-03 Bruno pide el intento 0701 de Ana: sin filas (solo el dueño)
+  PASS  C-04 Ana, Comunicación efectiva: 1 evidencia (DEMUESTRA derivada)
+  PASS  C-04 Ana, Gestión del tiempo: la simulación de la evidencia no la desarrolla
+  PASS  C-05 Ana, Comunicación efectiva: 37.5 → 92.5 → 40, sin el intento EN_CURSO
+  PASS  C-05 Bruno, Comunicación efectiva: sin progreso ni puntos
+  PASS  C-05 habilidad que no existe: sin filas (404 en el servicio)
+  PASS  las fechas salen en ISO-8601 UTC con milisegundos (convenciones §3)
+  PASS  cada consulta es una sola sentencia y está parametrizada
+
+share.test.ts (4 pruebas)
+  PASS  requires ownership and validates the create input
+  PASS  issues distinct tokens and revokes a link without removing it from the list
+  PASS  returns only the public snapshot and does not log the bearer token
+  PASS  checks revocation and expiry before accessing MongoDB
+
+simulation-admin.test.ts (7 pruebas)
+  PASS  requires ADMIN and validates skills, precision, pagination and draft metadata
+  PASS  requires the version the administrator saw and rejects invalid branches
+  PASS  publishes the exact MongoDB revision, projects it in Neo4j and retains it after deactivation
+  PASS  serializes editing against publication so an outdated revision cannot win
+  PASS  retries a candidate after SQL rollback and can replace an abandoned older candidate
+  PASS  leaves a draft when MongoDB is unavailable and keeps a confirmed revision when Neo4j fails
+  PASS  deletes drafts and their MongoDB content without affecting published simulations
